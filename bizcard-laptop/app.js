@@ -153,8 +153,10 @@
     const ph = numFlat.match(/(?:\+?\s*82[\s.\-)]*)?\(?(0?1[016789])\)?[\s.\-)]*(\d{3,4})[\s.\-]*(\d{4})(?!\d)/);
     let tel = '';
     numFlat.split('\n').forEach(l => {
-      if (tel || /fax|팩스|F\s*[.:]/i.test(l)) return;
-      const m = l.match(/(?<!\d)(0(?:2|[3-6][1-5]|70|50\d?|80))[\s.\-)]*(\d{3,4})[\s.\-]*(\d{4})(?!\d)/);
+      if (tel) return;
+      // "Tel 031.527.0799  Fax 031.527.1799"처럼 한 줄에 있으면 팩스 앞부분만 봄 (줄 전체를 버리지 않음)
+      const seg = l.split(/fax|팩스|\bF\s*[.:)]/i)[0];
+      const m = seg.match(/(?<!\d)(0(?:2|[3-6][1-5]|70|50\d?|80))[\s.\-)]*(\d{3,4})[\s.\-]*(\d{4})(?!\d)/);
       if (m) tel = `${m[1]}-${m[2]}-${m[3]}`;
     });
     // 카카오톡 ID: "카카오톡 ID : abc", "카톡 abc", "KakaoTalk: abc", "kakao id abc"
@@ -165,22 +167,31 @@
     const TITLE_S = '대표이사|대표|부사장|사장|전무|상무|이사|본부장|부장|차장|과장|대리|주임|사원|팀장|실장|소장|책임|선임|수석|연구원|매니저|기사|감독|원장|회장|교장|교감|행정실장|주무관|계장|팀원';
     const TITLE = new RegExp('(' + TITLE_S + ')', 'g');
     const CO = /(\(\s*[주유]\s*\)|㈜|주식회사|유한회사|건설|산업|엔지니어링|기술|설비|테크|코리아|그룹|홀딩스|개발|종합|전기|기계|공사|ENG|E&C|CO\.|학교|교육청|교육지원청|시청|구청|군청)/i;
+    const ADDR = /(특별시|광역시|[가-힣]+(시|도|군|구)\s+[가-힣]+(시|군|구|읍|면|동|로|길)|[가-힣0-9]+(로|길)\s*\d|\d+\s*(호|층|번지)|번길|빌딩|타워|센터)/;
+    const EN_TITLE = /\b(CEO|대표|President|Director|Manager)\b/i;
+    // 지명(경기도·서울시·남양주시 등)이 이름으로 잡히지 않게
+    const PLACE = /^(서울|부산|대구|인천|광주|대전|울산|세종|경기|강원|충청|충북|충남|전라|전북|전남|경상|경북|경남|제주)|(특별시|광역시|자치시|[시군읍면로길층])$/;
     let best = null;
     lines.forEach(l => {
-      if (/\d|@/.test(l.t) || CO.test(l.t)) return;
-      const ko = l.t.replace(TITLE, ' ').replace(/[^가-힣\s]/g, ' ').split(/\s+/).filter(Boolean);
+      if (/^\s*(서울|부산|대구|인천|광주|대전|울산|세종|경기|강원|충청|충북|충남|전라|전북|전남|경상|경북|경남|제주)/.test(l.t)) return;
+      // 회사줄·주소줄·전화/팩스/메일 머리줄은 이름 후보에서 제외. 숫자가 있어도 'CEO 지철연 010-...'처럼 이름이 같이 있을 수 있어 줄을 버리지 않고 숫자만 지움
+      if (CO.test(l.t) || ADDR.test(l.t) || /@/.test(l.t.replace(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+/g, '')) ) return;
+      const clean = l.t.replace(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+/g, ' ').replace(/(tel|fax|e-?mail|mobile|phone|hp|h\.p|팩스|전화|휴대폰|핸드폰)\s*[.:]?/gi, ' ');
+      const hasTitle = new RegExp(TITLE_S).test(clean) || EN_TITLE.test(clean);
+      const ko = clean.replace(TITLE, ' ').replace(/[^가-힣\s]/g, ' ').split(/\s+/).filter(Boolean);
       ko.forEach(w => {
-        if (w.length < 2 || w.length > 4 || SUR.indexOf(w[0]) < 0) return;
-        const score = l.h + (w.length === 3 ? 20 : 0) + (ko.length === 1 ? 10 : 0);
-        if (!best || score > best.score) best = { w, score, line: l.t };
+        if (w.length < 2 || w.length > 4 || SUR.indexOf(w[0]) < 0 || PLACE.test(w)) return;
+        const score = l.h + (w.length === 3 ? 20 : 0) + (ko.length === 1 ? 10 : 0) + (hasTitle ? 25 : 0) - (/\d/.test(l.t) ? 5 : 0);
+        if (!best || score > best.score) best = { w, score, line: clean };
       });
     });
     let title = '';
-    if (best) { const tm = best.line.match(TITLE); if (tm) title = tm[tm.length - 1]; }
+    if (best) { const tm = best.line.match(TITLE); if (tm) title = tm[tm.length - 1]; else if (/\bCEO\b|\bPresident\b/i.test(best.line)) title = '대표'; }
     if (!title) { const tl = lines.find(l => !/\d|@/.test(l.t) && l.t.length <= 20 && new RegExp('(' + TITLE_S + ')$').test(l.t)); if (tl) title = tl.t.match(new RegExp('(' + TITLE_S + ')$'))[1]; }
     const coLine = lines.filter(l => CO.test(l.t) && !/@/.test(l.t) && (l.t.match(/\d/g) || []).length < 4)
       .sort((a, b) => (/\(\s*주\s*\)|㈜|주식회사/.test(b.t) - /\(\s*주\s*\)|㈜|주식회사/.test(a.t)) || b.h - a.h)[0];
-    let company = coLine ? coLine.t.replace(/\(\s*주\s*\)/g, '(주)').replace(/\(\s*유\s*\)/g, '(유)') : '';
+    // 로고 잡티('Fy (주선…') 제거: 한글·(주)·㈜ 앞의 영문/기호를 떼고, 닫는 괄호가 빠진 '(주' 도 '(주)'로
+    let company = coLine ? coLine.t.replace(/^[^가-힣(㈜]*(?=[가-힣(㈜])/, '').replace(/\(\s*주\s*\)?/g, '(주)').replace(/\(\s*유\s*\)?/g, '(유)').replace(/\s+(대표|CEO).*$/i, '').trim() : '';
     if (!company && em && !/(naver|daum|hanmail|gmail|nate|kakao|hotmail|yahoo)\./i.test(em[0])) company = em[0].split('@')[1].split('.')[0];
     return {
       rName: best ? best.w : '', rTitle: title, rCompany: company, rPhone: ph ? `${ph[1].replace(/^1/, '01')}-${ph[2]}-${ph[3]}` : '',

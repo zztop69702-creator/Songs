@@ -156,6 +156,10 @@ class H(http.server.SimpleHTTPRequestHandler):
 H.extensions_map.update({'.wasm': 'application/wasm', '.js': 'text/javascript', '.woff2': 'font/woff2', '.gz': 'application/octet-stream'})
 
 
+socketserver.ThreadingTCPServer.allow_reuse_address = True
+socketserver.ThreadingTCPServer.daemon_threads = True
+
+
 def main():
     port = int(sys.argv[1]) if len(sys.argv) > 1 else 8765
     for p in range(port, port + 20):
