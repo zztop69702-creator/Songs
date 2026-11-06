@@ -79,6 +79,7 @@ main{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:2px;backgrou
 textarea.edit{font-size:14px;line-height:1.5;padding:10px 12px;border:2px solid var(--ink);resize:vertical;width:100%;outline-color:var(--accent)}
 #editBox{display:none;flex-direction:column;gap:6px;padding:10px;background:var(--n200)}
 #preview{display:flex;flex-direction:column;gap:10px;background:var(--n200);padding:12px}
+#preview .hint{color:var(--n700)}
 #preview canvas{width:100%;height:auto;background:#fff;box-shadow:0 4px 14px rgba(32,30,29,.14)}
 #finalText{white-space:pre-wrap;font-size:13px;line-height:1.55;background:var(--bg);border:2px solid var(--n300);padding:10px 12px;max-height:260px;overflow:auto}
 .card{border:2px solid var(--ink);padding:12px;display:flex;flex-direction:column;gap:8px}
@@ -106,6 +107,22 @@ table.log{width:100%;border-collapse:collapse;font-size:12px}
 table.log th,table.log td{border-bottom:1px solid var(--n300);padding:6px 4px;text-align:left;vertical-align:top}
 table.log th{font-size:11px;color:var(--n700)}
 .foot{font-size:11px;color:var(--n700);padding:10px 18px 70px;background:#fff;max-width:1680px;margin:0 auto;border:2px solid var(--ink);border-top:0;line-height:1.6}
+.picks{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.picks button{position:relative;display:flex;flex-direction:column;gap:6px;padding:6px;border:3px solid var(--n300);background:#fff;cursor:pointer;text-align:left;font-size:13px;font-weight:800}
+.picks button.on{border-color:var(--accent);background:#fff1ee}
+.picks button img{width:100%;height:120px;object-fit:contain;background:var(--n200)}
+.picks button .ck{position:absolute;top:10px;right:10px;width:26px;height:26px;border:2px solid var(--ink);background:#fff;display:flex;align-items:center;justify-content:center;font-size:16px}
+.picks button.on .ck{background:var(--accent);border-color:var(--accent);color:#fff}
+.bubble{display:flex;flex-direction:column;gap:8px;background:#fff;border:2px solid var(--n300);padding:10px}
+.bubble .bt{font-size:12px;font-weight:800;color:var(--accent-t)}
+.bubble canvas,.bubble img{width:100%;height:auto;max-height:420px;object-fit:contain;background:var(--n200)}
+.bubble .tx{white-space:pre-wrap;font-size:13px;line-height:1.55}
+.mode{min-height:36px;padding:0 12px;border:2px solid var(--ink);background:#fff;font-size:13px;font-weight:700;cursor:pointer}
+.mode.on{background:var(--ink);color:#fff}
+details.more>summary{cursor:pointer;font-size:14px;font-weight:800;list-style:none}
+details.more>summary::before{content:"▸ ";color:var(--accent)}
+details.more[open]>summary::before{content:"▾ "}
+details.more:not([open]){gap:0}
 kbd{border:1px solid var(--n700);border-bottom-width:2px;padding:0 4px;font-size:12px;background:#fff}
 </style>
 </head>
@@ -114,7 +131,7 @@ kbd{border:1px solid var(--n700);border-bottom-width:2px;padding:0 4px;font-size
   <img src="icon.png" alt="">
   <div>
     <div class="t1">(주)영일 영업용</div>
-    <div class="t2">영업도우미 <span>노트북용 VER3.0</span></div>
+    <div class="t2">영업도우미 <span>노트북용 VER3.2</span></div>
   </div>
   <div class="sp"></div>
   <div class="mode" id="modeText"></div>
@@ -164,24 +181,20 @@ kbd{border:1px solid var(--n700);border-bottom-width:2px;padding:0 4px;font-size
     </div>
   </div>
 
-  <!-- ② 보낼 내용 -->
+  <!-- ② 보낼 명함 · 소개글 -->
   <div class="col" id="colMsg">
     <div class="sec">
-      <div class="h"><span class="no">2</span>보낼 명함 · 소개글</div>
-      <div class="lbl">대표 명함 (소개글 10개가 바뀝니다)</div>
-      <div class="cats" id="cats"></div>
-      <div class="lbl">함께 보낼 명함 이미지 (3가지 중 원하는 것 선택)</div>
-      <div class="incl" id="incl"></div>
-      <div class="row">
-        <label class="row" style="gap:6px;font-size:13px;font-weight:700;cursor:pointer"><input type="checkbox" id="optMerge" style="accent-color:#ec3013;width:16px;height:16px"> 여러 장이면 한 장으로 합치기 (카톡 붙여넣기 1번)</label>
-        <label class="row" style="gap:6px;font-size:13px;font-weight:700;cursor:pointer"><input type="checkbox" id="optCardOnly" style="accent-color:#ec3013;width:16px;height:16px"> 홍보 사진 빼고 명함만</label>
+      <div class="h"><span class="no">2</span>보낼 명함 고르기 <span class="hint" style="font-weight:600">(1~3개, 누르면 선택/해제)</span></div>
+      <div class="picks" id="picks"></div>
+      <div class="row" style="justify-content:space-between">
+        <label class="row" style="gap:6px;font-size:13px;font-weight:700;cursor:pointer"><input type="checkbox" id="optCardOnly" style="accent-color:#ec3013;width:16px;height:16px"> 홍보 사진 빼고 명함 부분만</label>
       </div>
-    </div>
-    <div class="sec">
       <div class="lbl">색상</div>
       <div class="themes" id="themes"></div>
     </div>
     <div class="sec">
+      <div class="h" style="font-size:14px">소개글 고르기</div>
+      <div class="cats" id="cats"></div>
       <div class="row" style="justify-content:space-between">
         <div class="lbl" id="msgTitle"></div>
         <button class="btn" id="btnEdit" style="min-height:32px;font-size:12px"></button>
@@ -196,46 +209,38 @@ kbd{border:1px solid var(--n700);border-bottom-width:2px;padding:0 4px;font-size
     </div>
   </div>
 
-  <!-- ③ 미리보기 · 보내기 -->
+  <!-- ③ 받는 사람이 받는 내용 · 보내기 -->
   <div class="col" id="colSend">
     <div class="sec">
-      <div class="h"><span class="no">3</span>미리보기 · 보내기</div>
+      <div class="h"><span class="no">3</span>받는 사람이 받는 내용</div>
+      <div id="modeBox" class="row"></div>
       <div id="preview"></div>
-      <div class="lbl">보낼 글 (인사말 + 소개글 + 내 명함정보)</div>
-      <div id="finalText"></div>
-      <div class="grid2">
-        <button class="btn" id="btnCopyImg">🖼 이미지 복사</button>
-        <button class="btn" id="btnCopyText">📝 글 복사</button>
-        <button class="btn" id="btnSave">💾 이미지 파일 저장</button>
-        <button class="btn" id="btnShare">🔗 Windows 공유</button>
-      </div>
     </div>
-    <div class="sec">
+    <div class="sec" style="background:#fff1ee">
+      <div class="row" style="justify-content:space-between"><b style="font-size:15px">문자 자동 발송 (솔라피)</b><button class="btn" id="solSetBtn" style="min-height:30px;font-size:12px">설정</button></div>
+      <div class="hint" id="solState">확인 중…</div>
+      <button class="btn red big" id="solSend">📨 문자 자동 발송</button>
+      <div class="hint">보내기 전에 받는 번호·이미지·글을 확인하는 창이 먼저 뜹니다.</div>
+    </div>
+    <details class="sec more">
+      <summary>다른 방법으로 보내기 (카카오톡 PC · 무료 문자 · 메일 · 저장)</summary>
       <div class="card kakao">
         <div class="ct">카카오톡 PC로 보내기</div>
         <ol class="steps">
           <li>PC 카카오톡에서 상대를 찾습니다. 친구가 아니면 <b>친구 추가 → ID로 추가</b>
             <div class="row" style="margin:4px 0"><button class="btn" id="kCopyId" style="min-height:32px">카톡 ID 복사</button><button class="btn" id="kCopyPhone" style="min-height:32px">휴대폰 번호 복사</button></div>
             <span class="hint">번호로 친구 추가는 휴대폰 카톡(연락처 저장 → 자동 추가)에서 하는 것이 확실합니다.</span></li>
-          <li>대화창을 열고 <button class="btn red" id="kImg" style="min-height:32px">① 명함 이미지 복사</button> → 대화창에 <kbd>Ctrl</kbd>+<kbd>V</kbd> → 전송</li>
-          <li><button class="btn red" id="kText" style="min-height:32px">② 소개글 복사</button> → <kbd>Ctrl</kbd>+<kbd>V</kbd> → <kbd>Enter</kbd></li>
+          <li>대화창에서 이미지를 하나씩 복사 → <kbd>Ctrl</kbd>+<kbd>V</kbd> → 전송<div class="row" id="kImgs" style="margin:4px 0"></div></li>
+          <li><button class="btn red" id="kText" style="min-height:32px">소개글 + 내 연락처 복사</button> → <kbd>Ctrl</kbd>+<kbd>V</kbd> → <kbd>Enter</kbd></li>
         </ol>
-        <div class="hint">이미지 파일을 카톡 대화창에 끌어다 놓아도 됩니다 ([이미지 파일 저장] 후).</div>
       </div>
       <div class="card sms">
-        <div class="ct">문자(MMS)로 보내기</div>
-        <div id="solBox" style="display:flex;flex-direction:column;gap:6px;padding:10px;background:#fff1ee;border:2px solid var(--accent)">
-          <div class="row" style="justify-content:space-between"><b style="font-size:13px">자동 발송 (솔라피)</b><button class="btn" id="solSetBtn" style="min-height:30px;font-size:12px">설정</button></div>
-          <div class="hint" id="solState">확인 중…</div>
-          <button class="btn red big" id="solSend">📨 명함 이미지 + 소개글 문자 자동 발송</button>
-        </div>
-        <div class="lbl" style="margin-top:4px">또는 무료(반자동)</div>
+        <div class="ct">무료 문자 (반자동)</div>
         <div class="grid2">
           <button class="btn dark" id="sPhoneLink">휴대폰과 연결로 문자</button>
           <button class="btn dark" id="sQr">QR → 내 폰에서 문자</button>
         </div>
-        <div class="hint"><b>휴대폰과 연결</b>(Windows Phone Link, 갤럭시는 'Windows와 연결')이 설정된 노트북에서는 번호·글이 채워진 문자창이 열립니다. 명함 이미지는 자동 복사되므로 입력칸에 <kbd>Ctrl</kbd>+<kbd>V</kbd> 또는 이미지 첨부 버튼으로 넣으세요.<br>
-        <b>QR</b>: 갤럭시 카메라로 찍으면 번호·글이 채워진 문자창이 폰에서 열립니다. 이미지는 폰 문자창의 + 버튼으로 첨부하세요.</div>
+        <div class="hint"><b>휴대폰과 연결</b>(Windows Phone Link)·<b>채팅+ PC</b>: 번호·글이 채워진 창이 열리면 이미지를 <kbd>Ctrl</kbd>+<kbd>V</kbd> 또는 첨부.<br><b>QR</b>: 갤럭시 카메라로 찍으면 폰 문자창이 열립니다. 이미지는 + 버튼으로 첨부.</div>
       </div>
       <div class="card mail">
         <div class="ct">이메일로 보내기</div>
@@ -243,18 +248,21 @@ kbd{border:1px solid var(--n700);border-bottom-width:2px;padding:0 4px;font-size
           <button class="btn" id="mGmail">Gmail 웹으로 작성</button>
           <button class="btn" id="mMailto">기본 메일 앱으로 작성</button>
         </div>
-        <div class="hint">명함 이미지가 복사되어 있으니 본문에 <kbd>Ctrl</kbd>+<kbd>V</kbd> 하거나 저장한 파일을 첨부하세요.</div>
+        <div class="hint">첫 번째 명함 이미지가 복사됩니다. 본문에 <kbd>Ctrl</kbd>+<kbd>V</kbd> 하거나 저장한 파일을 첨부하세요.</div>
       </div>
-    </div>
-    <div class="sec">
-      <div class="row" style="justify-content:space-between">
-        <div class="lbl">보낸 기록 (이 노트북에만 저장)</div>
-        <div class="row"><button class="btn" id="btnLogCsv" style="min-height:30px;font-size:12px">엑셀(CSV) 저장</button><button class="btn" id="btnLogClear" style="min-height:30px;font-size:12px">기록 지우기</button></div>
+      <div class="grid2">
+        <button class="btn" id="btnCopyText">📝 글 복사</button>
+        <button class="btn" id="btnSave">💾 이미지 파일 저장</button>
+        <button class="btn" id="btnShare">🔗 Windows 공유</button>
       </div>
+    </details>
+    <details class="sec more">
+      <summary>보낸 기록</summary>
+      <div class="row"><button class="btn" id="btnLogCsv" style="min-height:30px;font-size:12px">엑셀(CSV) 저장</button><button class="btn" id="btnLogClear" style="min-height:30px;font-size:12px">기록 지우기</button></div>
       <div id="logBox"></div>
-    </div>
-    <div class="sec">
-      <div class="lbl">내 정보 (명함에 표시)</div>
+    </details>
+    <details class="sec more">
+      <summary>내 정보 · 백업</summary>
       <div id="myFields"></div>
       <div class="grid2">
         <button class="btn" id="btnBackup">백업 내보내기</button>
@@ -262,7 +270,7 @@ kbd{border:1px solid var(--n700);border-bottom-width:2px;padding:0 4px;font-size
         <button class="btn" id="btnReset">내 정보 초기화</button>
       </div>
       <div class="hint">설정은 이 노트북 브라우저에만 저장됩니다. 휴대폰 영업도우미에서 [백업 내보내기]한 파일을 가져오면 수정한 소개글·내 정보를 그대로 쓸 수 있습니다.</div>
-    </div>
+    </details>
   </div>
 </main>
 <div class="foot">
@@ -310,15 +318,8 @@ kbd{border:1px solid var(--n700);border-bottom-width:2px;padding:0 4px;font-size
     <div class="bh">문자 발송 확인<span class="sp"></span><button class="btn" id="solSendClose">취소</button></div>
     <div class="bb">
       <div style="font-size:16px;font-weight:800" id="solTo"></div>
-      <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:12px;align-items:start">
-        <img id="solImg" alt="" style="width:100%;max-height:52vh;object-fit:contain;object-position:top;background:var(--n200);border:2px solid var(--n300)">
-        <div style="display:flex;flex-direction:column;gap:6px">
-          <div class="lbl">보낼 글 (여기서 마지막으로 고칠 수 있음)</div>
-          <textarea class="edit" id="solText" rows="14"></textarea>
-          <div class="hint" id="solBytes"></div>
-        </div>
-      </div>
-      <div class="row"><button class="btn red big" id="solGo">보내기</button><span class="hint" id="solCost"></span></div>
+      <div id="solItems" style="display:flex;flex-direction:column;gap:12px"></div>
+      <div class="row" style="position:sticky;bottom:-16px;background:#fff;border-top:2px solid var(--ink);padding:12px 0;margin-bottom:-16px"><button class="btn red big" id="solGo">보내기</button><span class="hint" id="solCost"></span></div>
     </div>
   </div>
 </div>

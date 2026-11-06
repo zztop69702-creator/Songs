@@ -19,7 +19,7 @@
   let S = (() => {
     let saved = {};
     try { saved = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) {}
-    return { ...DEF, incl: null, merge: true, cardOnly: false, ...saved };
+    return { ...DEF, incl: null, sendMode: 'separate', cardOnly: false, ...saved };
   })();
   if (!S.incl) S.incl = { [S.cat || 'cabinet']: true };
   function persist() {
@@ -118,7 +118,16 @@
     let y = 0; parts.forEach((p, i) => { x.drawImage(p, 0, y, W, hs[i]); y += hs[i] + gap; });
     return out;
   }
-  function outputCanvases() { const c = selectedCats(); return (S.merge && c.length > 1) ? [{ c: mergedCanvas(c), name: c.map(k => CATS[k]).join('+') }] : c.map(k => ({ c: catCanvas(k), name: CATS[k] })); }
+  // 보낼 순서: 소개글을 고른 명함이 맨 앞, 나머지는 TAB → 소음캐비닛 → 얼굴명함 순
+  function sendOrder() { const c = selectedCats(), m = cat(); return c.includes(m) ? [m, ...c.filter(k => k !== m)] : c; }
+  const caption = (k, i, n) => `[(주)영일 ${S.name}] ${CATS[k]} 명함 (${i + 1}/${n})`;
+  // 받는 사람이 받을 문자 목록. 기본은 명함별로 따로(선명), 선택 시 한 장으로 합쳐 1건
+  function items() {
+    const c = sendOrder();
+    if (c.length === 1 || S.sendMode === 'merged') return [{ cats: c, c: c.length > 1 ? mergedCanvas(c) : catCanvas(c[0]), name: c.map(k => CATS[k]).join('+'), text: fullText() }];
+    return c.map((k, i) => ({ cats: [k], c: catCanvas(k), name: CATS[k], text: i === 0 ? fullText() : caption(k, i, c.length) }));
+  }
+  const outputCanvases = items;
   const toBlob = (c, type, q) => new Promise(r => c.toBlob(r, type || 'image/png', q));
   const safe = t => String(t || '').replace(/[\\/:*?"<>|\s]+/g, '_');
   function fileName(part, ext) { return `${safe(part)}_명함_${safe(S.name || '담당자')}${S.rName ? '_to_' + safe(S.rName) : ''}.${ext}`; }
@@ -341,10 +350,10 @@
     const ta = document.createElement('textarea'); ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.select();
     let ok = false; try { ok = document.execCommand('copy'); } catch (e) {} ta.remove(); return ok;
   }
-  async function copyImage() {
+  async function copyImage(idx) {
     const outs = outputCanvases();
     try {
-      const blob = await toBlob(outs[0].c, 'image/png');
+      const blob = await toBlob(outs[idx || 0].c, 'image/png');
       await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
       return outs.length;
     } catch (e) { console.error(e); return 0; }
@@ -361,7 +370,7 @@
   async function imgCopyMsg(prefix) {
     const n = await copyImage();
     if (!n) return prefix + ' 이미지 복사가 막혀 있어 [이미지 파일 저장] 후 첨부하세요.';
-    return prefix + (n > 1 ? ` 이미지 ${n}장 중 첫 장만 복사됐습니다. 나머지는 [이미지 파일 저장] 후 끌어다 놓거나 '한 장으로 합치기'를 켜세요.` : '');
+    return prefix + (n > 1 ? ` (명함 이미지 ${n}장 중 첫 장만 복사됨 — 나머지는 [이미지 파일 저장] 후 첨부)` : '');
   }
 
   // ---------- 보낸 기록 ----------
@@ -393,7 +402,6 @@
     return true;
   }
   const actions = {
-    copyImg: async () => { const n = await copyImage(); status(n ? (n > 1 ? `첫 장만 복사됐습니다 (${n}장). '한 장으로 합치기'를 켜면 한 번에 붙여넣을 수 있습니다.` : '명함 이미지를 복사했습니다. 카톡·메일·문자창에 Ctrl+V 하세요.') : '이미지 복사가 막혀 있습니다. [이미지 파일 저장]을 쓰세요.', n ? 'ok' : 'err'); },
     copyTxt: async () => { const ok = await copyText(fullText()); status(ok ? '보낼 글을 복사했습니다. Ctrl+V 하세요.' : '복사하지 못했습니다.', ok ? 'ok' : 'err'); },
     save: async () => { const n = await saveImages(); status(`이미지 ${n}개를 '다운로드' 폴더에 저장했습니다.`, 'ok'); },
     share: async () => {
@@ -408,7 +416,7 @@
     },
     kId: async () => { if (!S.rKakao) { status('카카오톡 ID가 비어 있습니다. 명함에 ID가 없으면 휴대폰 번호로 찾으세요.', 'err'); return; } await copyText(S.rKakao); status(`카톡 ID '${S.rKakao}'를 복사했습니다. PC 카톡 → 친구 추가 → ID로 추가 칸에 Ctrl+V.`, 'ok'); },
     kPhone: async () => { if (!needRecipient('phone')) return; await copyText(S.rPhone); status(`${S.rPhone} 를 복사했습니다.`, 'ok'); },
-    kImg: async () => { const m = await imgCopyMsg('명함 이미지를 복사했습니다. 카톡 대화창에 Ctrl+V → 전송. 다음은 ② 소개글 복사.'); addLog('카카오톡 PC'); status(m, 'ok'); },
+    kImg: async i => { const n = await copyImage(i); addLog('카카오톡 PC'); status(n ? `${i + 1}번째 명함 이미지(${items()[i].name})를 복사했습니다. 카톡 대화창에 Ctrl+V → 전송.` + (i + 1 < n ? ` 다음은 ${i + 2}번째 이미지.` : ' 다음은 소개글 복사.') : '이미지 복사가 막혀 있습니다. [이미지 파일 저장]을 쓰세요.', n ? 'ok' : 'err'); },
     kText: async () => { const ok = await copyText(fullText()); addLog('카카오톡 PC'); status(ok ? '소개글+명함정보를 복사했습니다. 카톡 대화창에 Ctrl+V → Enter.' : '복사하지 못했습니다.', ok ? 'ok' : 'err'); },
     phoneLink: async () => {
       if (!needRecipient('phone')) return;
@@ -480,27 +488,31 @@
     } catch (e) { st.textContent = e.message; go.disabled = true; }
   }
   // MMS 이미지: JPG 200KB 이하 (솔라피 제한) → 여유 있게 190KB 이하로 줄임
-  async function mmsJpeg() {
-    const outs = outputCanvases(), src = outs.length > 1 ? mergedCanvas(selectedCats()) : outs[0].c;
+  async function mmsJpeg(src) {
     for (const k of [1, 0.85, 0.72, 0.6, 0.5, 0.42, 0.35]) {
       const c = document.createElement('canvas'); c.width = Math.round(src.width * k); c.height = Math.round(src.height * k);
       const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); x.imageSmoothingQuality = 'high'; x.drawImage(src, 0, 0, c.width, c.height);
       for (const q of [0.82, 0.7, 0.6]) { const b = await toBlob(c, 'image/jpeg', q); if (b.size <= 190 * 1024) return { blob: b, w: c.width, h: c.height }; }
     }
-    throw new Error('이미지를 200KB 이하로 줄이지 못했습니다. 보낼 명함 수를 줄이세요.');
+    throw new Error('이미지를 200KB 이하로 줄이지 못했습니다.');
   }
   const bytesOf = t => { let n = 0; for (const ch of t) n += ch.charCodeAt(0) > 127 ? 2 : 1; return n; };
+  const MMS_WON = 110;
   let solPending = null;
   async function solOpenSend() {
     if (!SOL.configured) { openSolCfg(); return; }
     if (!needRecipient('phone')) return;
     status('문자용 이미지 준비 중…');
-    const img = await mmsJpeg();
-    solPending = img;
-    $('solImg').src = URL.createObjectURL(img.blob);
-    $('solTo').textContent = `받는 사람: ${S.rName || ''}${S.rTitle ? ' ' + S.rTitle : ''} ${S.rPhone}${S.rCompany ? ' (' + S.rCompany + ')' : ''}`;
-    $('solText').value = fullText(); solBytes();
-    $('solCost').textContent = `사진 MMS 1건 · 솔라피 가격표 기준 약 110원(VAT 별도) · 이미지 ${Math.round(img.blob.size / 1024)}KB` + (selectedCats().length > 1 ? ' · 명함 여러 장을 한 장으로 합치면 폰에서 글씨가 작게 보일 수 있습니다 (문자는 1~2장 권장)' : '');
+    const its = items(), list = [];
+    for (const it of its) list.push({ ...it, img: await mmsJpeg(it.c) });
+    solPending = list;
+    $('solTo').textContent = `받는 사람: ${S.rName || ''}${S.rTitle ? ' ' + S.rTitle : ''} ${S.rPhone}${S.rCompany ? ' (' + S.rCompany + ')' : ''} · 문자 ${list.length}건`;
+    $('solItems').innerHTML = list.map((it, i) => `<div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:12px;align-items:start;border-top:2px solid var(--n300);padding-top:10px">
+        <img src="${URL.createObjectURL(it.img.blob)}" alt="" style="width:100%;max-height:46vh;object-fit:contain;object-position:top;background:var(--n200);border:2px solid var(--n300)">
+        <div style="display:flex;flex-direction:column;gap:6px"><div class="lbl">문자 ${i + 1}/${list.length} · ${esc(it.name)} · 이미지 ${Math.round(it.img.blob.size / 1024)}KB</div>
+        ${i === 0 ? '<textarea class="edit" id="solText" rows="13"></textarea><div class="hint" id="solBytes"></div>' : `<div class="tx" style="white-space:pre-wrap;font-size:13px;background:var(--bg);padding:8px">${esc(it.text)}</div>`}</div></div>`).join('');
+    $('solText').value = list[0].text; $('solText').oninput = solBytes; solBytes();
+    $('solCost').textContent = `사진 MMS ${list.length}건 × 약 ${MMS_WON}원 = 약 ${(list.length * MMS_WON).toLocaleString()}원 (VAT 별도, 솔라피 가격표 기준)`;
     $('solSendModal').classList.add('open'); status('');
   }
   function solBytes() {
@@ -508,15 +520,17 @@
     $('solBytes').innerHTML = `${n} / 2000 byte${over ? ' · <b style="color:#c9260e">너무 깁니다. 줄여야 보낼 수 있습니다.</b>' : ''}`;
     $('solGo').disabled = over || !$('solText').value.trim();
   }
+  const b64Of = blob => new Promise(ok => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(',')[1]); r.readAsDataURL(blob); });
   async function solGo() {
     if (!solPending) return;
     const go = $('solGo'); go.disabled = true; go.textContent = '보내는 중…';
     try {
-      const b64 = await new Promise(ok => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(',')[1]); r.readAsDataURL(solPending.blob); });
-      const j = await api('api/sms/send', { to: digits(S.rPhone), text: $('solText').value, subject: `[(주)영일] ${S.name} 명함`.slice(0, 20), image: b64 });
+      const subject = `[(주)영일] ${S.name} 명함`.slice(0, 20), list = [];
+      for (const [i, it] of solPending.entries()) list.push({ image: await b64Of(it.img.blob), text: i === 0 ? $('solText').value : it.text, subject });
+      const j = await api('api/sms/send', { to: digits(S.rPhone), items: list });
       if (j.ok) {
-        $('solSendModal').classList.remove('open'); addLog('문자 자동(솔라피)');
-        status(`${S.rName || S.rPhone}님께 문자 접수 완료. 실제 도착 여부는 솔라피 콘솔 > 메시지 내역에서 확인할 수 있습니다.`, 'ok');
+        $('solSendModal').classList.remove('open'); addLog(`문자 자동(솔라피) ${list.length}건`);
+        status(`${S.rName || S.rPhone}님께 문자 ${j.count || list.length}건 접수 완료. 실제 도착은 솔라피 콘솔 > 메시지 내역에서 확인할 수 있습니다.`, 'ok');
         solRefresh(true);
       } else status('발송 실패: ' + j.error, 'err');
     } catch (e) { status('발송 실패: ' + e.message, 'err'); }
@@ -540,10 +554,17 @@
   }
   function syncInputs(root) { root.querySelectorAll('input[data-k]').forEach(i => { if (document.activeElement !== i) i.value = S[i.dataset.k] || ''; }); }
   function render() {
+    if (!S.incl[S.cat || 'cabinet']) { const f = ORDER.find(x => S.incl[x]); if (f) S.cat = f; }
     const c = cat(), i = sel(), edits = (S.msgEdit || {})[c] || {};
-    $('cats').innerHTML = Object.entries(CATS).map(([k, l]) => `<button data-cat="${k}" class="${k === c ? 'on' : ''}">${l}</button>`).join('');
-    $('incl').innerHTML = ORDER.map(k => `<label class="${S.incl[k] ? 'on' : ''}"><input type="checkbox" data-incl="${k}" ${S.incl[k] ? 'checked' : ''}>${CATS[k]}</label>`).join('');
-    $('optMerge').checked = !!S.merge; $('optCardOnly').checked = !!S.cardOnly;
+    const selc = selectedCats();
+    $('picks').innerHTML = ORDER.map(k => `<button data-pick="${k}" class="${S.incl[k] ? 'on' : ''}"><span class="ck">${S.incl[k] ? '✓' : ''}</span><img alt="" data-thumb="${k}" src="${thumbs[k] || ''}">${CATS[k]}</button>`).join('');
+    $('cats').innerHTML = selc.map(k => `<button data-cat="${k}" class="${k === c ? 'on' : ''}">${CATS[k]}</button>`).join('');
+    $('cats').style.gridTemplateColumns = `repeat(${selc.length},minmax(0,1fr))`;
+    $('optCardOnly').checked = !!S.cardOnly;
+    const nIt = selc.length === 1 || S.sendMode === 'merged' ? 1 : selc.length;
+    $('modeBox').innerHTML = selc.length > 1 ? `<span class="lbl">여러 장 보내는 방식</span><button class="mode ${S.sendMode !== 'merged' ? 'on' : ''}" data-mode="separate">명함별로 따로 ${selc.length}건 (선명, 권장)</button><button class="mode ${S.sendMode === 'merged' ? 'on' : ''}" data-mode="merged">한 장으로 합쳐 1건 (글씨 작아짐)</button>` : '';
+    $('solSend').textContent = `📨 문자 자동 발송 · ${nIt}건 (약 ${(nIt * MMS_WON).toLocaleString()}원 + VAT)`;
+    $('kImgs').innerHTML = Array.from({ length: nIt }, (_, i) => `<button class="btn red" data-kimg="${i}" style="min-height:32px">이미지 ${i + 1} 복사</button>`).join('');
     $('themes').innerHTML = THEMES.map(t => `<button data-theme="${t.id}" class="${t.id === S.theme ? 'on' : ''}" title="${esc(t.name)}"><div class="sw"><div style="flex:2;background:${t.banner}"></div><div style="height:4px;background:${t.hi}"></div><div style="flex:1;background:${t.body}"></div></div><b>${t.id}</b></button>`).join('');
     $('msgTitle').textContent = `소개글 · ${CATS[c]} (10개 + 직접 작성)`;
     $('msgs').innerHTML = MSGS[c].map((t, n) => `<button class="msg ${i === n ? 'on' : ''}" data-msg="${n}"><span class="dot"></span><span style="display:flex;flex-direction:column;gap:3px;min-width:0"><span class="tag">${n + 1}번${edits[n] != null ? ' · 수정됨' : ''}</span><span class="tx">${esc(msgText(c, n))}</span></span></button>`).join('') +
@@ -559,20 +580,34 @@
     const L = S.rLines || [];
     $('lines').style.display = L.length ? 'flex' : 'none';
     $('lines').innerHTML = L.length ? `<div class="lbl">인식된 글자 · 눌러서 칸에 채우기</div>` + L.map((t, n) => `<div class="ln"><span title="${esc(t)}">${esc(t)}</span><button data-line="${n}" data-to="rName">이름</button><button data-line="${n}" data-to="rCompany">회사</button><button data-line="${n}" data-to="rPhone">휴대폰</button><button data-line="${n}" data-to="rKakao">카톡</button></div>`).join('') : '';
-    $('finalText').textContent = fullText();
     drawPreview();
   }
-  let drawT;
+  let drawT; const thumbs = {}; let thumbKey = '';
   function drawPreview() {
     clearTimeout(drawT);
     drawT = setTimeout(() => {
-      const box = $('preview'), outs = outputCanvases();
+      const box = $('preview'), its = items();
       box.innerHTML = '';
-      outs.forEach(o => { o.c.title = o.name; box.appendChild(o.c); });
-      const n = selectedCats().length;
+      its.forEach((it, i) => {
+        const d = document.createElement('div'); d.className = 'bubble';
+        d.innerHTML = `<div class="bt">문자 ${i + 1}${its.length > 1 ? '/' + its.length : ''} · ${esc(it.name)}</div>`;
+        d.appendChild(it.c);
+        const t = document.createElement('div'); t.className = 'tx'; t.textContent = it.text; d.appendChild(t);
+        box.appendChild(d);
+      });
       const cap = document.createElement('div'); cap.className = 'hint';
-      cap.textContent = `보낼 이미지 ${outs.length}장 · ${selectedCats().map(k => CATS[k]).join(' + ')}${n > 1 && S.merge ? ' (한 장으로 합침)' : ''}${S.cardOnly ? ' · 명함만' : ' · 홍보 사진 포함'}`;
+      cap.textContent = `${S.cardOnly ? '명함 부분만' : '홍보 사진 + 명함'} · 첫 문자에 인사말·소개글·회사정보·내 연락처가 들어갑니다.`;
       box.appendChild(cap);
+      const key = S.theme + '|' + S.name + S.title + S.phone + S.email;
+      if (key !== thumbKey) { // 고르기 칸 썸네일(명함 부분)
+        thumbKey = key;
+        ORDER.forEach(k => {
+          const full = document.createElement('canvas'); draw(full, k);
+          const { T, L } = geo(k), t = document.createElement('canvas'); t.width = 360; t.height = Math.round(360 * (T + 541) / (L + 1024));
+          t.getContext('2d').drawImage(full, 0, 0, t.width, t.height); thumbs[k] = t.toDataURL('image/jpeg', 0.8);
+          const im = document.querySelector(`[data-thumb="${k}"]`); if (im) im.src = thumbs[k];
+        });
+      }
     }, 60);
   }
 
@@ -584,12 +619,12 @@
       const k = e.target.dataset.k; if (!k) return;
       let v = e.target.value;
       if (e.type === 'change' && ['rPhone', 'rTel', 'phone'].includes(k)) { v = fmtPhone(v); e.target.value = v; }
-      S[k] = v; persist(); $('finalText').textContent = fullText(); if (['name', 'title', 'phone', 'email'].includes(k)) drawPreview();
+      S[k] = v; persist(); drawPreview();
     };
     ['rFields', 'myFields'].forEach(id => { $(id).addEventListener('input', onField); $(id).addEventListener('change', onField); });
     document.body.addEventListener('click', e => {
       const t = e.target.closest('[data-cat],[data-theme],[data-msg],[data-line]'); if (!t) return;
-      if (t.dataset.cat) set({ cat: t.dataset.cat, editing: false, incl: { ...S.incl, [t.dataset.cat]: true } });
+      if (t.dataset.cat) set({ cat: t.dataset.cat, editing: false });
       else if (t.dataset.theme) set({ theme: t.dataset.theme });
       else if (t.dataset.msg != null && t.classList.contains('msg')) set({ msgSel: { ...(S.msgSel || {}), [cat()]: +t.dataset.msg }, editing: false });
       else if (t.dataset.line != null) {
@@ -601,14 +636,23 @@
         set({ [to]: v });
       }
     });
-    $('incl').addEventListener('change', e => { const k = e.target.dataset.incl; if (!k) return; const incl = { ...S.incl, [k]: e.target.checked }; if (!ORDER.some(x => incl[x])) incl[cat()] = true; set({ incl }); });
-    $('optMerge').onchange = e => set({ merge: e.target.checked });
+    $('picks').addEventListener('click', e => {
+      const b = e.target.closest('[data-pick]'); if (!b) return; const k = b.dataset.pick;
+      const incl = { ...S.incl, [k]: !S.incl[k] };
+      if (!ORDER.some(x => incl[x])) { status('명함은 최소 1개는 골라야 합니다.'); return; }
+      const patch = { incl };
+      if (incl[k] && !S.incl[k] && !ORDER.some(x => S.incl[x] && x === cat())) patch.cat = k;
+      if (!incl[cat()]) patch.cat = ORDER.find(x => incl[x]);
+      set(patch);
+    });
+    $('modeBox').addEventListener('click', e => { const b = e.target.closest('[data-mode]'); if (b) set({ sendMode: b.dataset.mode }); });
+    $('kImgs').addEventListener('click', e => { const b = e.target.closest('[data-kimg]'); if (b) actions.kImg(+b.dataset.kimg); });
     $('optCardOnly').onchange = e => set({ cardOnly: e.target.checked });
     $('btnEdit').onclick = () => set({ editing: !S.editing });
     $('btnEditDone').onclick = () => set({ editing: false });
     $('editText').oninput = e => { const all = { ...(S.msgEdit || {}) }, mine = { ...(all[cat()] || {}) }; mine[sel()] = e.target.value; all[cat()] = mine; S.msgEdit = all; persist(); updateMsgsOnly(); };
     $('btnEditRevert').onclick = () => { const all = { ...(S.msgEdit || {}) }, mine = { ...(all[cat()] || {}) }; delete mine[sel()]; all[cat()] = mine; set({ msgEdit: all }); status('원래 문구로 되돌렸습니다.'); };
-    $('customText').oninput = e => { S.msgCustom = { ...(S.msgCustom || {}), [cat()]: e.target.value }; persist(); $('finalText').textContent = fullText(); };
+    $('customText').oninput = e => { S.msgCustom = { ...(S.msgCustom || {}), [cat()]: e.target.value }; persist(); drawPreview(); };
     // 스캔 입력
     $('btnCam').onclick = () => openCam();
     $('camSel').onchange = e => openCam(e.target.value);
@@ -643,7 +687,7 @@
     $('pasteBox').oninput = e => { if (e.target.value.trim().length > 6) fillFromText(e.target.value); };
     $('btnClearR').onclick = () => { const o = {}; PARSE_KEYS.forEach(k => { o[k] = ''; }); o.rLines = []; set(o); $('scanThumb').style.display = 'none'; $('thumbTools').style.display = 'none'; $('ocrBar').style.display = 'none'; $('ocrText').textContent = ''; $('pasteBox').value = ''; scanSrc = null; };
     // 보내기
-    const A = { btnCopyImg: 'copyImg', btnCopyText: 'copyTxt', btnSave: 'save', btnShare: 'share', kCopyId: 'kId', kCopyPhone: 'kPhone', kImg: 'kImg', kText: 'kText', sPhoneLink: 'phoneLink', sQr: 'qr', mGmail: 'gmail', mMailto: 'mailto', btnVcf: 'vcf' };
+    const A = { btnCopyText: 'copyTxt', btnSave: 'save', btnShare: 'share', kCopyId: 'kId', kCopyPhone: 'kPhone', kText: 'kText', sPhoneLink: 'phoneLink', sQr: 'qr', mGmail: 'gmail', mMailto: 'mailto', btnVcf: 'vcf' };
     Object.entries(A).forEach(([id, a]) => {
       $(id).onclick = () => {
         try { const p = actions[a](); if (p && p.catch) p.catch(err => { console.error(err); status('오류: ' + err.message, 'err'); }); }
@@ -656,7 +700,7 @@
     $('solCfgReset').onclick = async () => { if (!confirm('이 노트북에 저장된 솔라피 키를 삭제할까요?')) return; try { await api('api/sms/reset', {}); } catch (e) {} $('solCfgModal').classList.remove('open'); solRefresh(); status('솔라피 설정을 삭제했습니다.'); };
     $('solSend').onclick = () => solOpenSend().catch(e => status(e.message, 'err'));
     $('solSendClose').onclick = () => $('solSendModal').classList.remove('open');
-    $('solText').oninput = solBytes; $('solGo').onclick = solGo;
+    $('solGo').onclick = solGo;
     $('btnLogCsv').onclick = logCsv;
     $('btnLogClear').onclick = () => { if (confirm('보낸 기록을 모두 지울까요? (먼저 CSV로 저장해 두세요)')) { localStorage.removeItem(LOGKEY); renderLog(); } };
     // 백업 (휴대폰 VER2.0 백업 파일과 호환)
@@ -669,7 +713,7 @@
           const j = JSON.parse(r.result); if (!j || j.app !== '영업도우미' || typeof j.data !== 'object') throw new Error('bad');
           const d = { ...j.data }; [...VOLATILE, 'status', 'ocrBusy', 'ocrP', 'canInstall', 'standalone', 'pasteOpen', 'pasteText', 'schema'].forEach(k => delete d[k]);
           if (Array.isArray(j.log)) { try { localStorage.setItem(LOGKEY, JSON.stringify(j.log)); } catch (e) {} renderLog(); }
-          set({ ...DEF, incl: { [d.cat || 'cabinet']: true }, merge: true, cardOnly: false, ...d });
+          set({ ...DEF, incl: { [d.cat || 'cabinet']: true }, sendMode: 'separate', cardOnly: false, ...d });
           status(`백업을 복원했습니다 (${(j.exportedAt || '').slice(0, 10)}).`, 'ok');
         } catch (err) { status('영업도우미 백업 파일이 아닙니다.', 'err'); }
       };
@@ -680,7 +724,7 @@
   function updateMsgsOnly() {
     const c = cat(), i = sel(), el = $('msgs').querySelector(`[data-msg="${i}"] .tx`), tg = $('msgs').querySelector(`[data-msg="${i}"] .tag`);
     if (el) el.textContent = msgText(c, i); if (tg) tg.textContent = `${i + 1}번 · 수정됨`;
-    $('finalText').textContent = fullText();
+    drawPreview();
   }
 
   // ---------- 시작 ----------
@@ -691,7 +735,7 @@
     await Promise.all([loadImg('card'), loadImg('tab'), loadImg('face')]);
     try { await Promise.all(['500', '600', '700', '800'].map(w => document.fonts.load(`${w} 40px Pretendard`, '가나다'))); } catch (e) {}
     render();
-    window.__app = { S: () => S, parseCard, fullText, outputCanvases, scanCanvas, scanBlob, set }; // 점검용
+    window.__app = { S: () => S, parseCard, fullText, outputCanvases, items, mmsJpeg, scanCanvas, scanBlob, set }; // 점검용
   }
   start();
 })();

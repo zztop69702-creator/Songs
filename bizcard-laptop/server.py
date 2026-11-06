@@ -81,21 +81,27 @@ def api(path, body):
         to = re.sub(r'\D', '', str(body.get('to', '')))
         if len(to) < 10:
             return {'ok': False, 'error': '받는 번호가 올바르지 않습니다.'}
-        msg = {'to': to, 'from': c['from'], 'text': str(body.get('text', ''))}
-        if body.get('image'):
-            st, b = sol(c, 'POST', 'storage/v1/files', {'file': body['image'], 'type': 'MMS', 'name': 'card.jpg'})
-            if st != 200 or not (b or {}).get('fileId'):
-                return {'ok': False, 'error': '이미지 업로드 실패 - ' + err(st, b)}
-            msg.update(imageId=b['fileId'], type='MMS')
-            if body.get('subject'):
-                msg['subject'] = str(body['subject'])
-        st, b = sol(c, 'POST', 'messages/v4/send-many/fast', {'messages': [msg]})
+        its = body.get('items') or [{'text': body.get('text', ''), 'image': body.get('image'), 'subject': body.get('subject')}]
+        if not 1 <= len(its) <= 5:
+            return {'ok': False, 'error': '한 번에 1~5건만 보낼 수 있습니다.'}
+        msgs = []
+        for it in its:
+            msg = {'to': to, 'from': c['from'], 'text': str(it.get('text') or '')}
+            if it.get('image'):
+                st, b = sol(c, 'POST', 'storage/v1/files', {'file': it['image'], 'type': 'MMS', 'name': 'card.jpg'})
+                if st != 200 or not (b or {}).get('fileId'):
+                    return {'ok': False, 'error': '이미지 업로드 실패 - ' + err(st, b)}
+                msg.update(imageId=b['fileId'], type='MMS')
+                if it.get('subject'):
+                    msg['subject'] = str(it['subject'])
+            msgs.append(msg)
+        st, b = sol(c, 'POST', 'messages/v4/send-many/fast', {'messages': msgs, 'allowDuplicates': True})
         if st != 200:
             return {'ok': False, 'error': err(st, b)}
         failed = (b or {}).get('failedMessageList') or []
         if failed:
-            return {'ok': False, 'error': f"접수 실패: {failed[0].get('statusCode')} {failed[0].get('statusMessage')}"}
-        return {'ok': True, 'groupId': ((b or {}).get('groupInfo') or {}).get('groupId'), 'type': msg.get('type')}
+            return {'ok': False, 'error': f"{len(msgs)}건 중 {len(failed)}건 접수 실패: {failed[0].get('statusCode')} {failed[0].get('statusMessage')}"}
+        return {'ok': True, 'count': len(msgs), 'groupId': ((b or {}).get('groupInfo') or {}).get('groupId')}
     if path == 'api/sms/reset':
         if os.path.exists(CFG):
             os.remove(CFG)

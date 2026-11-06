@@ -96,18 +96,25 @@ function Handle-Api($ctx, $rel) {
       $c = Get-Cfg; if (-not $c) { return @{ ok = $false; error = '문자 설정이 없습니다.' } }
       $to = ([string]$body.to) -replace '\D', ''
       if ($to.Length -lt 10) { return @{ ok = $false; error = '받는 번호가 올바르지 않습니다.' } }
-      $msg = @{ to = $to; from = $c.from; text = [string]$body.text }
-      if ($body.image) {
-        $u = Invoke-Sol $c 'POST' 'storage/v1/files' @{ file = [string]$body.image; type = 'MMS'; name = 'card.jpg' }
-        if ($u.status -ne 200 -or -not $u.body.fileId) { return @{ ok = $false; error = '이미지 업로드 실패 - ' + (Sol-Err $u) } }
-        $msg.imageId = $u.body.fileId; $msg.type = 'MMS'
-        if ($body.subject) { $msg.subject = [string]$body.subject }
+      $its = @($body.items)
+      if (-not $body.items) { $its = @(@{ text = $body.text; image = $body.image; subject = $body.subject }) }
+      if ($its.Count -lt 1 -or $its.Count -gt 5) { return @{ ok = $false; error = '한 번에 1~5건만 보낼 수 있습니다.' } }
+      $msgs = @()
+      foreach ($it in $its) {
+        $msg = @{ to = $to; from = $c.from; text = [string]$it.text }
+        if ($it.image) {
+          $u = Invoke-Sol $c 'POST' 'storage/v1/files' @{ file = [string]$it.image; type = 'MMS'; name = 'card.jpg' }
+          if ($u.status -ne 200 -or -not $u.body.fileId) { return @{ ok = $false; error = '이미지 업로드 실패 - ' + (Sol-Err $u) } }
+          $msg.imageId = $u.body.fileId; $msg.type = 'MMS'
+          if ($it.subject) { $msg.subject = [string]$it.subject }
+        }
+        $msgs += $msg
       }
-      $r = Invoke-Sol $c 'POST' 'messages/v4/send-many/fast' @{ messages = @($msg) }
+      $r = Invoke-Sol $c 'POST' 'messages/v4/send-many/fast' @{ messages = $msgs; allowDuplicates = $true }
       if ($r.status -ne 200) { return @{ ok = $false; error = (Sol-Err $r) } }
-      $failed = @($r.body.failedMessageList)
-      if ($failed.Count -gt 0 -and $failed[0]) { return @{ ok = $false; error = "접수 실패: $($failed[0].statusCode) $($failed[0].statusMessage)" } }
-      return @{ ok = $true; groupId = $r.body.groupInfo.groupId; type = $msg.type }
+      $failed = @($r.body.failedMessageList | Where-Object { $_ })
+      if ($failed.Count -gt 0) { return @{ ok = $false; error = "$($msgs.Count)건 중 $($failed.Count)건 접수 실패: $($failed[0].statusCode) $($failed[0].statusMessage)" } }
+      return @{ ok = $true; count = $msgs.Count; groupId = $r.body.groupInfo.groupId }
     }
     'api/sms/reset' { if (Test-Path -LiteralPath $cfgPath) { Remove-Item -LiteralPath $cfgPath }; return @{ ok = $true } }
   }
