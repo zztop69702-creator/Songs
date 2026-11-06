@@ -447,6 +447,81 @@
     } catch (e) { return null; }
   }
 
+  // ---------- 솔라피 문자 자동 발송 (노트북 로컬 서버가 대신 호출, 키는 브라우저에 두지 않음) ----------
+  const SOL = { configured: false, from: '' };
+  async function api(path, body) {
+    const r = await fetch(path, body ? { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Yeongil': '1' }, body: JSON.stringify(body) } : { headers: { 'X-Yeongil': '1' } });
+    let j = null; try { j = await r.json(); } catch (e) {}
+    if (!j) throw new Error(r.status === 404 ? '실행_윈도우.bat(최신 버전)로 열어야 문자 자동 발송을 쓸 수 있습니다.' : 'HTTP ' + r.status);
+    return j;
+  }
+  const won = n => (n == null ? '-' : Number(n).toLocaleString('ko-KR') + '원');
+  async function solRefresh(showBalance) {
+    const st = $('solState'), go = $('solSend');
+    if (isFile) { st.textContent = '파일 더블클릭 실행에서는 쓸 수 없습니다. 실행_윈도우.bat로 여세요.'; go.disabled = true; return; }
+    try {
+      const j = await api('api/sms/status');
+      SOL.configured = !!j.configured; SOL.from = j.from || '';
+      go.disabled = !SOL.configured;
+      if (!SOL.configured) { st.innerHTML = '아직 설정 전입니다. <b>[설정]</b>에서 솔라피 API Key를 넣으세요.'; return; }
+      st.textContent = `연결됨 · 발신번호 ${fmtPhone(SOL.from)} · 키 ${j.apiKey}`;
+      if (showBalance) { const b = await api('api/sms/balance'); if (b.ok) st.textContent += ` · 잔액 ${won(b.balance)}${b.point ? ' / 포인트 ' + won(b.point) : ''}`; }
+    } catch (e) { st.textContent = e.message; go.disabled = true; }
+  }
+  // MMS 이미지: JPG 200KB 이하 (솔라피 제한) → 여유 있게 190KB 이하로 줄임
+  async function mmsJpeg() {
+    const outs = outputCanvases(), src = outs.length > 1 ? mergedCanvas(selectedCats()) : outs[0].c;
+    for (const k of [1, 0.85, 0.72, 0.6, 0.5, 0.42, 0.35]) {
+      const c = document.createElement('canvas'); c.width = Math.round(src.width * k); c.height = Math.round(src.height * k);
+      const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); x.imageSmoothingQuality = 'high'; x.drawImage(src, 0, 0, c.width, c.height);
+      for (const q of [0.82, 0.7, 0.6]) { const b = await toBlob(c, 'image/jpeg', q); if (b.size <= 190 * 1024) return { blob: b, w: c.width, h: c.height }; }
+    }
+    throw new Error('이미지를 200KB 이하로 줄이지 못했습니다. 보낼 명함 수를 줄이세요.');
+  }
+  const bytesOf = t => { let n = 0; for (const ch of t) n += ch.charCodeAt(0) > 127 ? 2 : 1; return n; };
+  let solPending = null;
+  async function solOpenSend() {
+    if (!SOL.configured) { openSolCfg(); return; }
+    if (!needRecipient('phone')) return;
+    status('문자용 이미지 준비 중…');
+    const img = await mmsJpeg();
+    solPending = img;
+    $('solImg').src = URL.createObjectURL(img.blob);
+    $('solTo').textContent = `받는 사람: ${S.rName || ''}${S.rTitle ? ' ' + S.rTitle : ''} ${S.rPhone}${S.rCompany ? ' (' + S.rCompany + ')' : ''}`;
+    $('solText').value = fullText(); solBytes();
+    $('solCost').textContent = `사진 MMS 1건 · 솔라피 가격표 기준 약 110원(VAT 별도) · 이미지 ${Math.round(img.blob.size / 1024)}KB` + (selectedCats().length > 1 ? ' · 명함 여러 장을 한 장으로 합치면 폰에서 글씨가 작게 보일 수 있습니다 (문자는 1~2장 권장)' : '');
+    $('solSendModal').classList.add('open'); status('');
+  }
+  function solBytes() {
+    const n = bytesOf($('solText').value), over = n > 2000;
+    $('solBytes').innerHTML = `${n} / 2000 byte${over ? ' · <b style="color:#c9260e">너무 깁니다. 줄여야 보낼 수 있습니다.</b>' : ''}`;
+    $('solGo').disabled = over || !$('solText').value.trim();
+  }
+  async function solGo() {
+    if (!solPending) return;
+    const go = $('solGo'); go.disabled = true; go.textContent = '보내는 중…';
+    try {
+      const b64 = await new Promise(ok => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(',')[1]); r.readAsDataURL(solPending.blob); });
+      const j = await api('api/sms/send', { to: digits(S.rPhone), text: $('solText').value, subject: `[(주)영일] ${S.name} 명함`.slice(0, 20), image: b64 });
+      if (j.ok) {
+        $('solSendModal').classList.remove('open'); addLog('문자 자동(솔라피)');
+        status(`${S.rName || S.rPhone}님께 문자 접수 완료. 실제 도착 여부는 솔라피 콘솔 > 메시지 내역에서 확인할 수 있습니다.`, 'ok');
+        solRefresh(true);
+      } else status('발송 실패: ' + j.error, 'err');
+    } catch (e) { status('발송 실패: ' + e.message, 'err'); }
+    finally { go.textContent = '보내기'; solBytes(); }
+  }
+  function openSolCfg() { $('solFrom').value = fmtPhone(SOL.from || S.phone); $('solKey').value = ''; $('solSecret').value = ''; $('solCfgModal').classList.add('open'); setTimeout(() => $('solKey').focus(), 50); }
+  async function solSaveCfg() {
+    const btn = $('solCfgSave'); btn.disabled = true; btn.textContent = '확인 중…';
+    try {
+      const j = await api('api/sms/config', { apiKey: $('solKey').value, apiSecret: $('solSecret').value, from: $('solFrom').value });
+      if (j.ok) { $('solCfgModal').classList.remove('open'); $('solSecret').value = ''; status(`솔라피 연결 성공 · 잔액 ${won(j.balance)}`, 'ok'); solRefresh(true); }
+      else status('연결 실패: ' + j.error + ' (Key/Secret을 다시 복사해 보세요)', 'err');
+    } catch (e) { status(e.message, 'err'); }
+    finally { btn.disabled = false; btn.textContent = '저장하고 연결 확인'; }
+  }
+
   // ---------- 화면 그리기 ----------
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   function inputsHtml(list, prefix) {
@@ -547,7 +622,7 @@
     });
     document.addEventListener('keydown', e => {
       if ($('camModal').classList.contains('open')) { if (e.code === 'Space') { e.preventDefault(); shoot(); } if (e.key === 'Escape') stopCam(); }
-      else if (e.key === 'Escape') $('qrModal').classList.remove('open');
+      else if (e.key === 'Escape') ['qrModal', 'solCfgModal', 'solSendModal'].forEach(id => $(id).classList.remove('open'));
     });
     $('btnRotate').onclick = rotateScan; $('btnRescan').onclick = () => scanSrc && scanCanvas(scanSrc);
     $('btnPaste').onclick = async () => {
@@ -565,6 +640,12 @@
       };
     });
     $('qrClose').onclick = () => $('qrModal').classList.remove('open');
+    $('solSetBtn').onclick = openSolCfg; $('solCfgClose').onclick = () => $('solCfgModal').classList.remove('open');
+    $('solCfgSave').onclick = solSaveCfg;
+    $('solCfgReset').onclick = async () => { if (!confirm('이 노트북에 저장된 솔라피 키를 삭제할까요?')) return; try { await api('api/sms/reset', {}); } catch (e) {} $('solCfgModal').classList.remove('open'); solRefresh(); status('솔라피 설정을 삭제했습니다.'); };
+    $('solSend').onclick = () => solOpenSend().catch(e => status(e.message, 'err'));
+    $('solSendClose').onclick = () => $('solSendModal').classList.remove('open');
+    $('solText').oninput = solBytes; $('solGo').onclick = solGo;
     $('btnLogCsv').onclick = logCsv;
     $('btnLogClear').onclick = () => { if (confirm('보낸 기록을 모두 지울까요? (먼저 CSV로 저장해 두세요)')) { localStorage.removeItem(LOGKEY); renderLog(); } };
     // 백업 (휴대폰 VER2.0 백업 파일과 호환)
@@ -595,7 +676,7 @@
   async function start() {
     if (isFile) $('fileWarn').style.display = 'block';
     $('modeText').innerHTML = isFile ? '실행: 파일 직접 열기<br>(사진 인식 불가)' : '실행: 노트북 로컬 서버<br>사진 인식 가능 · 인터넷 불필요';
-    bind(); renderLog();
+    bind(); renderLog(); solRefresh(true);
     await Promise.all([loadImg('card'), loadImg('tab'), loadImg('face')]);
     try { await Promise.all(['500', '600', '700', '800'].map(w => document.fonts.load(`${w} 40px Pretendard`, '가나다'))); } catch (e) {}
     render();
