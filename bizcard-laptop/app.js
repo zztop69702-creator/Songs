@@ -490,9 +490,13 @@
     } catch (e) { st.textContent = e.message; go.disabled = true; }
   }
   // MMS 이미지: JPG 200KB 이하 (솔라피 제한) → 여유 있게 190KB 이하로 줄임
+  // 솔라피 MMS 이미지 제한: JPG, 200KB 이하, 가로 1500px · 세로 1440px 이하 (실제 오류 'TooHighResolution'로 확인)
+  const MMS_MAX_W = 1500, MMS_MAX_H = 1440;
   async function mmsJpeg(src) {
-    for (const k of [1, 0.85, 0.72, 0.6, 0.5, 0.42, 0.35]) {
-      const c = document.createElement('canvas'); c.width = Math.round(src.width * k); c.height = Math.round(src.height * k);
+    const k0 = Math.min(1, MMS_MAX_W / src.width, MMS_MAX_H / src.height);
+    for (const f of [1, 0.85, 0.72, 0.6, 0.5, 0.42, 0.35]) {
+      const k = k0 * f;
+      const c = document.createElement('canvas'); c.width = Math.min(MMS_MAX_W, Math.floor(src.width * k)); c.height = Math.min(MMS_MAX_H, Math.floor(src.height * k));
       const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); x.imageSmoothingQuality = 'high'; x.drawImage(src, 0, 0, c.width, c.height);
       for (const q of [0.82, 0.7, 0.6]) { const b = await toBlob(c, 'image/jpeg', q); if (b.size <= 190 * 1024) return { blob: b, w: c.width, h: c.height }; }
     }
@@ -564,7 +568,7 @@
     $('cats').style.gridTemplateColumns = `repeat(${selc.length},minmax(0,1fr))`;
     $('optCardOnly').checked = !!S.cardOnly;
     const nIt = selc.length === 1 || S.sendMode === 'merged' ? 1 : selc.length;
-    $('modeBox').innerHTML = selc.length > 1 ? `<span class="lbl">여러 장 보내는 방식</span><button class="mode ${S.sendMode !== 'merged' ? 'on' : ''}" data-mode="separate">명함별로 따로 ${selc.length}건 (선명, 권장)</button><button class="mode ${S.sendMode === 'merged' ? 'on' : ''}" data-mode="merged">한 장으로 합쳐 1건 (글씨 작아짐)</button>` : '';
+    $('modeBox').innerHTML = selc.length > 1 ? `<span class="lbl">여러 장 보내는 방식</span><button class="mode ${S.sendMode !== 'merged' ? 'on' : ''}" data-mode="separate">명함별로 따로 ${selc.length}건 (선명, 권장)</button><button class="mode ${S.sendMode === 'merged' ? 'on' : ''}" data-mode="merged">한 장으로 합쳐 1건 (문자 크기 제한 때문에 글씨가 매우 작아짐, 비권장)</button>` : '';
     $('solSend').textContent = `📨 문자 자동 발송 · ${nIt}건 (약 ${(nIt * MMS_WON).toLocaleString()}원 + VAT)`;
     $('kImgs').innerHTML = Array.from({ length: nIt }, (_, i) => `<button class="btn red" data-kimg="${i}" style="min-height:32px">이미지 ${i + 1} 복사</button>`).join('');
     $('themes').innerHTML = THEMES.map(t => `<button data-theme="${t.id}" class="${t.id === S.theme ? 'on' : ''}" title="${esc(t.name)}"><div class="sw"><div style="flex:2;background:${t.banner}"></div><div style="height:4px;background:${t.hi}"></div><div style="flex:1;background:${t.body}"></div></div><b>${t.id}</b></button>`).join('');
