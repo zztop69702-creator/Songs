@@ -512,19 +512,33 @@
     const its = items(), list = [];
     for (const it of its) list.push({ ...it, img: await mmsJpeg(it.c) });
     solPending = list;
-    $('solTo').textContent = `받는 사람: ${S.rName || ''}${S.rTitle ? ' ' + S.rTitle : ''} ${S.rPhone}${S.rCompany ? ' (' + S.rCompany + ')' : ''} · 문자 ${list.length}건`;
-    $('solItems').innerHTML = list.map((it, i) => `<div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:12px;align-items:start;border-top:2px solid var(--n300);padding-top:10px">
-        <img src="${URL.createObjectURL(it.img.blob)}" alt="" style="width:100%;max-height:46vh;object-fit:contain;object-position:top;background:var(--n200);border:2px solid var(--n300)">
-        <div style="display:flex;flex-direction:column;gap:6px"><div class="lbl">문자 ${i + 1}/${list.length} · ${esc(it.name)} · 이미지 ${Math.round(it.img.blob.size / 1024)}KB</div>
-        ${i === 0 ? '<textarea class="edit" id="solText" rows="13"></textarea><div class="hint" id="solBytes"></div>' : `<div class="tx" style="white-space:pre-wrap;font-size:13px;background:var(--bg);padding:8px">${esc(it.text)}</div>`}</div></div>`).join('');
-    $('solText').value = list[0].text; $('solText').oninput = solBytes; solBytes();
-    $('solCost').textContent = `사진 MMS ${list.length}건 × 약 ${MMS_WON}원 = 약 ${(list.length * MMS_WON).toLocaleString()}원 (VAT 별도, 솔라피 가격표 기준)`;
+    $('solItems').innerHTML = `<div class="lbl">첫 번째 문자 글 (인사말·소개글·회사정보·내 연락처 — 여기서 마지막으로 고칠 수 있음)</div>
+      <textarea class="edit" id="solText" rows="10"></textarea><div class="hint" id="solBytes"></div>
+      <div class="lbl">보낼 명함 — <b>체크한 것만</b> 보냅니다</div>
+      <div style="display:grid;grid-template-columns:repeat(${Math.min(3, list.length)},minmax(0,1fr));gap:10px">` +
+      list.map((it, i) => `<label class="solck" style="display:flex;flex-direction:column;gap:6px;border:3px solid var(--accent);padding:6px;cursor:pointer;background:#fff1ee">
+        <span class="row" style="gap:6px;font-size:13px;font-weight:800"><input type="checkbox" data-solck="${i}" checked style="accent-color:#ec3013;width:18px;height:18px">${esc(it.name)}</span>
+        <img src="${URL.createObjectURL(it.img.blob)}" alt="" style="width:100%;max-height:34vh;object-fit:contain;background:var(--n200)">
+        <span class="hint" data-solcap="${i}"></span></label>`).join('') + '</div>';
+    $('solText').value = list[0].text; $('solText').oninput = solBytes;
+    $('solItems').querySelectorAll('[data-solck]').forEach(cb => { cb.onchange = solBytes; });
+    solBytes();
     $('solSendModal').classList.add('open'); status('');
   }
+  function solChecked() { return (solPending || []).filter((it, i) => { const cb = document.querySelector(`[data-solck="${i}"]`); return !cb || cb.checked; }); }
   function solBytes() {
-    const n = bytesOf($('solText').value), over = n > 2000;
+    const n = bytesOf($('solText').value), over = n > 2000, ck = solChecked(), cnt = ck.length;
     $('solBytes').innerHTML = `${n} / 2000 byte${over ? ' · <b style="color:#c9260e">너무 깁니다. 줄여야 보낼 수 있습니다.</b>' : ''}`;
-    $('solGo').disabled = over || !$('solText').value.trim();
+    (solPending || []).forEach((it, i) => {
+      const cb = document.querySelector(`[data-solck="${i}"]`), lab = cb && cb.closest('label'), cap = document.querySelector(`[data-solcap="${i}"]`);
+      const pos = ck.indexOf(it);
+      if (lab) { lab.style.borderColor = cb.checked ? 'var(--accent)' : 'var(--n300)'; lab.style.background = cb.checked ? '#fff1ee' : '#fff'; lab.querySelector('img').style.opacity = cb.checked ? '1' : '.35'; }
+      if (cap) cap.textContent = pos < 0 ? '보내지 않음' : `문자 ${pos + 1}/${cnt}` + (pos === 0 ? ' · 위의 글과 함께' : ' · 짧은 설명만') + ` · ${Math.round(it.img.blob.size / 1024)}KB`;
+    });
+    $('solTo').textContent = `받는 사람: ${S.rName || ''}${S.rTitle ? ' ' + S.rTitle : ''} ${S.rPhone}${S.rCompany ? ' (' + S.rCompany + ')' : ''} · 문자 ${cnt}건`;
+    $('solCost').textContent = cnt ? `사진 MMS ${cnt}건 × 약 ${MMS_WON}원 = 약 ${(cnt * MMS_WON).toLocaleString()}원 (VAT 별도, 솔라피 가격표 기준)` : '보낼 명함을 1개 이상 체크하세요.';
+    $('solGo').disabled = over || !$('solText').value.trim() || !cnt;
+    $('solGo').textContent = cnt ? `${cnt}건 보내기` : '보내기';
   }
   const b64Of = blob => new Promise(ok => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(',')[1]); r.readAsDataURL(blob); });
   async function solGo() {
@@ -532,7 +546,8 @@
     const go = $('solGo'); go.disabled = true; go.textContent = '보내는 중…';
     try {
       const subject = `[(주)영일] ${S.name} 명함`.slice(0, 20), list = [];
-      for (const [i, it] of solPending.entries()) list.push({ image: await b64Of(it.img.blob), text: i === 0 ? $('solText').value : it.text, subject });
+      const ck = solChecked(); if (!ck.length) { status('보낼 명함을 체크하세요.', 'err'); return; }
+      for (const [i, it] of ck.entries()) list.push({ image: await b64Of(it.img.blob), text: i === 0 ? $('solText').value : caption(it.cats[0], i, ck.length), subject });
       const j = await api('api/sms/send', { to: digits(S.rPhone), items: list });
       if (j.ok) {
         $('solSendModal').classList.remove('open'); addLog(`문자 자동(솔라피) ${list.length}건`);
@@ -540,7 +555,7 @@
         solRefresh(true);
       } else status('발송 실패: ' + j.error, 'err');
     } catch (e) { status('발송 실패: ' + e.message, 'err'); }
-    finally { go.textContent = '보내기'; solBytes(); }
+    finally { solBytes(); }
   }
   function openSolCfg() { $('solFrom').value = fmtPhone(SOL.from || S.phone); $('solKey').value = ''; $('solSecret').value = ''; $('solCfgModal').classList.add('open'); setTimeout(() => $('solKey').focus(), 50); }
   async function solSaveCfg() {
@@ -563,7 +578,8 @@
     if (!S.incl[S.cat || 'cabinet']) { const f = ORDER.find(x => S.incl[x]); if (f) S.cat = f; }
     const c = cat(), i = sel(), edits = (S.msgEdit || {})[c] || {};
     const selc = selectedCats();
-    $('picks').innerHTML = ORDER.map(k => `<button data-pick="${k}" class="${S.incl[k] ? 'on' : ''}"><span class="ck">${S.incl[k] ? '✓' : ''}</span><img alt="" data-thumb="${k}" src="${thumbs[k] || ''}">${CATS[k]}</button>`).join('');
+    $('picks').innerHTML = ORDER.map(k => `<button data-pick="${k}" class="${S.incl[k] ? 'on' : ''}"><span class="ck">${S.incl[k] ? '✓' : ''}</span><span class="only" data-only="${k}" title="이 명함 하나만 보내기">이것만</span><img alt="" data-thumb="${k}" src="${thumbs[k] || ''}">${CATS[k]}</button>`).join('');
+    $('pickSum').innerHTML = `보낼 명함 <b>${selc.length}개</b>: ${selc.map(k => CATS[k]).join(', ')}`;
     $('cats').innerHTML = selc.map(k => `<button data-cat="${k}" class="${k === c ? 'on' : ''}">${CATS[k]}</button>`).join('');
     $('cats').style.gridTemplateColumns = `repeat(${selc.length},minmax(0,1fr))`;
     $('optCardOnly').checked = !!S.cardOnly;
@@ -643,6 +659,8 @@
       }
     });
     $('picks').addEventListener('click', e => {
+      const o = e.target.closest('[data-only]');
+      if (o) { const k = o.dataset.only; set({ incl: { [k]: true }, cat: k }); status(`${CATS[k]} 명함 하나만 보냅니다.`, 'ok'); return; }
       const b = e.target.closest('[data-pick]'); if (!b) return; const k = b.dataset.pick;
       const incl = { ...S.incl, [k]: !S.incl[k] };
       if (!ORDER.some(x => incl[x])) { status('명함은 최소 1개는 골라야 합니다.'); return; }

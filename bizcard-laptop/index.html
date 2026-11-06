@@ -112,6 +112,8 @@ table.log th{font-size:11px;color:var(--n700)}
 .picks button.on{border-color:var(--accent);background:#fff1ee}
 .picks button img{width:100%;height:120px;object-fit:contain;background:var(--n200)}
 .picks button .ck{position:absolute;top:10px;right:10px;width:26px;height:26px;border:2px solid var(--ink);background:#fff;display:flex;align-items:center;justify-content:center;font-size:16px}
+.picks .only{position:absolute;top:10px;left:10px;padding:3px 7px;border:2px solid var(--ink);background:#fff;font-size:11px;font-weight:800}
+.picks .only:hover{background:var(--ink);color:#fff}
 .picks button.on .ck{background:var(--accent);border-color:var(--accent);color:#fff}
 .bubble{display:flex;flex-direction:column;gap:8px;background:#fff;border:2px solid var(--n300);padding:10px}
 .bubble .bt{font-size:12px;font-weight:800;color:var(--accent-t)}
@@ -131,7 +133,7 @@ kbd{border:1px solid var(--n700);border-bottom-width:2px;padding:0 4px;font-size
   <img src="icon.png" alt="">
   <div>
     <div class="t1">(주)영일 영업용</div>
-    <div class="t2">영업도우미 <span>노트북용 VER3.4</span></div>
+    <div class="t2">영업도우미 <span>노트북용 VER3.5</span></div>
   </div>
   <div class="sp"></div>
   <div class="mode" id="modeText"></div>
@@ -184,8 +186,9 @@ kbd{border:1px solid var(--n700);border-bottom-width:2px;padding:0 4px;font-size
   <!-- ② 보낼 명함 · 소개글 -->
   <div class="col" id="colMsg">
     <div class="sec">
-      <div class="h"><span class="no">2</span>보낼 명함 고르기 <span class="hint" style="font-weight:600">(1~3개, 누르면 선택/해제)</span></div>
+      <div class="h"><span class="no">2</span>보낼 명함 고르기 <span class="hint" style="font-weight:600">(누르면 선택/해제 · [이것만]은 그 명함 하나만)</span></div>
       <div class="picks" id="picks"></div>
+      <div class="hint" id="pickSum" style="font-size:13px;color:var(--ink)"></div>
       <div class="row" style="justify-content:space-between">
         <label class="row" style="gap:6px;font-size:13px;font-weight:700;cursor:pointer"><input type="checkbox" id="optCardOnly" style="accent-color:#ec3013;width:16px;height:16px"> 홍보 사진 빼고 명함 부분만</label>
       </div>
