@@ -266,6 +266,7 @@
   }
   async function scanBlob(blob) { try { scanCanvas(await blobToCanvas(blob)); } catch (e) { status('이미지 파일을 열 수 없습니다. JPG·PNG 사진인지 확인하세요.', 'err'); } }
   async function scanCanvas(c) {
+    $('scanMore').open = true;
     if (busy) { status('지금 인식 중입니다. 잠시 기다리세요.'); return; }
     scanSrc = c;
     const th = $('scanThumb'); th.src = c.toDataURL('image/jpeg', 0.85); th.style.display = 'block'; $('thumbTools').style.display = 'flex';
@@ -598,7 +599,7 @@
     if (document.activeElement !== $('editText')) $('editText').value = i === 99 ? '' : msgText(c, i);
     $('customText').style.display = i === 99 ? 'block' : 'none';
     if (document.activeElement !== $('customText')) $('customText').value = (S.msgCustom || {})[c] || '';
-    syncInputs($('rFields')); syncInputs($('myFields'));
+    syncInputs($('rMain')); syncInputs($('rFields')); syncInputs($('myFields'));
     const L = S.rLines || [];
     $('lines').style.display = L.length ? 'flex' : 'none';
     $('lines').innerHTML = L.length ? `<div class="lbl">인식된 글자 · 눌러서 칸에 채우기</div>` + L.map((t, n) => `<div class="ln"><span title="${esc(t)}">${esc(t)}</span><button data-line="${n}" data-to="rName">이름</button><button data-line="${n}" data-to="rCompany">회사</button><button data-line="${n}" data-to="rPhone">휴대폰</button><button data-line="${n}" data-to="rKakao">카톡</button></div>`).join('') : '';
@@ -635,7 +636,7 @@
 
   // ---------- 이벤트 ----------
   function bind() {
-    $('rFields').innerHTML = inputsHtml(R_FIELDS, 'r_');
+    $('rFields').innerHTML = inputsHtml(R_FIELDS.filter(f => f[0] !== 'rName' && f[0] !== 'rPhone'), 'r_');
     $('myFields').innerHTML = inputsHtml([['name', '이름', '홍길동'], ['title', '직책/부서', '이사 / 덕트진단 1팀'], ['phone', '휴대폰', '010-0000-0000', 'tel'], ['email', '이메일', 'name@hanmail.net', 'email']], 'm_');
     const onField = e => {
       const k = e.target.dataset.k; if (!k) return;
@@ -643,7 +644,7 @@
       if (e.type === 'change' && ['rPhone', 'rTel', 'phone'].includes(k)) { v = fmtPhone(v); e.target.value = v; }
       S[k] = v; persist(); drawPreview();
     };
-    ['rFields', 'myFields'].forEach(id => { $(id).addEventListener('input', onField); $(id).addEventListener('change', onField); });
+    ['rMain', 'rFields', 'myFields'].forEach(id => { $(id).addEventListener('input', onField); $(id).addEventListener('change', onField); });
     document.body.addEventListener('click', e => {
       const t = e.target.closest('[data-cat],[data-theme],[data-msg],[data-line]'); if (!t) return;
       if (t.dataset.cat) set({ cat: t.dataset.cat, editing: false });

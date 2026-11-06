@@ -125,6 +125,10 @@ details.more>summary{cursor:pointer;font-size:14px;font-weight:800;list-style:no
 details.more>summary::before{content:"▸ ";color:var(--accent)}
 details.more[open]>summary::before{content:"▾ "}
 details.more:not([open]){gap:0}
+.bigf{display:flex;align-items:center;gap:12px;border:2px solid var(--ink);padding:4px 12px;background:#fff}
+.bigf:focus-within{border-color:var(--accent)}
+.bigf span{flex:none;width:52px;font-size:14px;font-weight:800;color:var(--n700)}
+.bigf input{flex:1;min-width:0;font-size:22px;font-weight:800;padding:10px 0;border:0;outline:none;background:transparent}
 kbd{border:1px solid var(--n700);border-bottom-width:2px;padding:0 4px;font-size:12px;background:#fff}
 </style>
 </head>
@@ -133,7 +137,7 @@ kbd{border:1px solid var(--n700);border-bottom-width:2px;padding:0 4px;font-size
   <img src="icon.png" alt="">
   <div>
     <div class="t1">(주)영일 영업용</div>
-    <div class="t2">영업도우미 <span>노트북용 VER3.5</span></div>
+    <div class="t2">영업도우미 <span>노트북용 VER3.6</span></div>
   </div>
   <div class="sp"></div>
   <div class="mode" id="modeText"></div>
@@ -148,7 +152,16 @@ kbd{border:1px solid var(--n700);border-bottom-width:2px;padding:0 4px;font-size
   <!-- ① 상대 명함 -->
   <div class="col" id="colScan">
     <div class="sec">
-      <div class="h"><span class="no">1</span>상대방 명함 스캔</div>
+      <div class="h"><span class="no">1</span>받는 사람</div>
+      <div id="rMain" style="display:flex;flex-direction:column;gap:10px">
+        <label class="bigf"><span>이름</span><input id="r_rName" data-k="rName" placeholder="홍길동" autocomplete="off"></label>
+        <label class="bigf"><span>휴대폰</span><input id="r_rPhone" data-k="rPhone" inputmode="tel" placeholder="010-0000-0000" autocomplete="off"></label>
+      </div>
+      <div class="hint">이름은 인사말("홍길동님, 안녕하세요.")에 들어갑니다. 비워 두면 인사말 없이 보냅니다.</div>
+      <div class="row"><button class="btn" id="btnClearR">새로 입력 (비우기)</button></div>
+    </div>
+    <details class="sec more" id="scanMore">
+      <summary>명함 사진으로 채우기 (선택)</summary>
       <div id="drop">
         <div class="grid2">
           <button class="btn dark big" id="btnCam">📷 웹캠으로 촬영</button>
@@ -166,11 +179,9 @@ kbd{border:1px solid var(--n700);border-bottom-width:2px;padding:0 4px;font-size
         <div id="ocrBar"><div></div></div>
         <div class="hint" id="ocrText"></div>
       </div>
-    </div>
-    <div class="sec">
       <div class="row" style="justify-content:space-between">
-        <div class="lbl">인식 결과 · 틀린 곳만 고치세요</div>
-        <button class="btn" id="btnClearR" style="min-height:30px;font-size:12px">비우기</button>
+        <div class="lbl">추가 정보 (선택 · 카톡·메일·연락처 저장용)</div>
+        
       </div>
       <div id="rFields"></div>
       <div class="grid2">
@@ -180,7 +191,7 @@ kbd{border:1px solid var(--n700);border-bottom-width:2px;padding:0 4px;font-size
       <textarea id="pasteBox" rows="4" placeholder="명함 글자를 여기에 붙여넣기 (Ctrl+V)"></textarea>
       <div class="hint">.vcf를 휴대폰 연락처(구글 주소록 가져오기)에 저장하면, 카카오톡 '친구 자동 추가'가 켜져 있을 때 카톡 친구로 자동 연결됩니다.</div>
       <div id="lines"></div>
-    </div>
+    </details>
   </div>
 
   <!-- ② 보낼 명함 · 소개글 -->
