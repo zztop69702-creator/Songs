@@ -2,4 +2,6 @@
 title Yeongil Sales Helper (laptop)
 cd /d "%~dp0"
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0server.ps1"
-if errorlevel 1 pause
+echo.
+echo [Server stopped] See server-log.txt
+pause

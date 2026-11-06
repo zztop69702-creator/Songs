@@ -469,7 +469,9 @@
   // ---------- 솔라피 문자 자동 발송 (노트북 로컬 서버가 대신 호출, 키는 브라우저에 두지 않음) ----------
   const SOL = { configured: false, from: '' };
   async function api(path, body) {
-    const r = await fetch(path, body ? { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Yeongil': '1' }, body: JSON.stringify(body) } : { headers: { 'X-Yeongil': '1' } });
+    let r;
+    try { r = await fetch(path, body ? { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Yeongil': '1' }, body: JSON.stringify(body) } : { headers: { 'X-Yeongil': '1' } }); }
+    catch (e) { throw new Error('노트북 실행 프로그램(검은 창)과 연결이 끊겼습니다. 검은 창이 열려 있는지, 빨간 글씨가 있는지 확인하세요. (검은 창 안을 클릭했다면 Enter를 한 번 누르세요) 창이 닫혔다면 실행_윈도우.bat을 다시 실행하세요.'); }
     let j = null; try { j = await r.json(); } catch (e) {}
     if (!j) throw new Error(r.status === 404 ? '실행_윈도우.bat(최신 버전)로 열어야 문자 자동 발송을 쓸 수 있습니다.' : 'HTTP ' + r.status);
     return j;

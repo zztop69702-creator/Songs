@@ -4,8 +4,16 @@
 $ErrorActionPreference = 'Stop'
 try { [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12 } catch { }
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
+# 검은 창을 마우스로 클릭해도 서버가 멈추지 않게 '빠른 편집 모드' 끄기 (실패해도 무시)
+try {
+  Add-Type -Namespace YI -Name Con -MemberDefinition '[DllImport("kernel32.dll")] public static extern System.IntPtr GetStdHandle(int h); [DllImport("kernel32.dll")] public static extern bool GetConsoleMode(System.IntPtr h, out uint m); [DllImport("kernel32.dll")] public static extern bool SetConsoleMode(System.IntPtr h, uint m);'
+  $hin = [YI.Con]::GetStdHandle(-10); $mode = 0
+  if ([YI.Con]::GetConsoleMode($hin, [ref]$mode)) { [void][YI.Con]::SetConsoleMode($hin, (($mode -band (-bnot 0x40)) -bor 0x80)) }
+} catch { }
 $rootFull = [System.IO.Path]::GetFullPath($root)
 $cfgPath = Join-Path $rootFull 'solapi.local.json'
+$logPath = Join-Path $rootFull 'server-log.txt'
+function Log($m, $color) { $line = '[{0}] {1}' -f (Get-Date -Format 'MM-dd HH:mm:ss'), $m; if ($color) { Write-Host "  $line" -ForegroundColor $color } else { Write-Host "  $line" }; try { Add-Content -LiteralPath $logPath -Value $line -Encoding UTF8 } catch { } }
 $solBase = 'https://api.solapi.com'
 $mime = @{
   '.html' = 'text/html; charset=utf-8'; '.js' = 'text/javascript; charset=utf-8'; '.css' = 'text/css; charset=utf-8'
@@ -48,9 +56,10 @@ function Invoke-Sol($cfg, $method, $path, $bodyObj) {
     $req.ContentLength = $data.Length
     $s = $req.GetRequestStream(); $s.Write($data, 0, $data.Length); $s.Close()
   }
-  try { $resp = $req.GetResponse() } catch [System.Net.WebException] {
-    $resp = $_.Exception.Response
-    if (-not $resp) { return @{ status = 0; body = $null; err = $_.Exception.Message } }
+  try { $resp = $req.GetResponse() } catch {
+    $ex = $_.Exception; while ($ex -and -not ($ex -is [System.Net.WebException]) -and $ex.InnerException) { $ex = $ex.InnerException }
+    $resp = $null; if ($ex -is [System.Net.WebException]) { $resp = $ex.Response }
+    if (-not $resp) { return @{ status = 0; body = $null; err = $ex.Message } }
   }
   $rd = New-Object System.IO.StreamReader($resp.GetResponseStream(), [System.Text.Encoding]::UTF8)
   $txt = $rd.ReadToEnd(); $rd.Close()
@@ -144,9 +153,9 @@ while ($listener.IsListening) {
   try {
     $rel = [System.Uri]::UnescapeDataString($ctx.Request.Url.AbsolutePath.TrimStart('/'))
     if ($rel.StartsWith('api/')) {
-      try { $out = Handle-Api $ctx $rel } catch { $out = @{ ok = $false; error = "서버 오류: $($_.Exception.Message)" } }
+      try { $out = Handle-Api $ctx $rel } catch { $out = @{ ok = $false; error = "서버 오류: $($_.Exception.Message) (줄 $($_.InvocationInfo.ScriptLineNumber))" } }
       if ($out.error -eq 'forbidden') { $res.StatusCode = 403 }
-      if ($rel -eq 'api/sms/send') { Write-Host ("  [{0}] 문자 발송 {1}" -f (Get-Date -Format 'HH:mm:ss'), $(if ($out.ok) { '접수 성공' } else { '실패: ' + $out.error })) }
+      if ($rel -ne 'api/sms/status') { if ($out.ok) { Log "$rel 성공" 'Green' } else { Log "$rel 실패: $($out.error)" 'Red' } }
       $res.ContentType = 'application/json; charset=utf-8'
       $b = [System.Text.Encoding]::UTF8.GetBytes(($out | ConvertTo-Json -Compress))
     } else {
@@ -163,5 +172,6 @@ while ($listener.IsListening) {
     }
     $res.ContentLength64 = $b.Length
     $res.OutputStream.Write($b, 0, $b.Length)
-  } catch { } finally { try { $res.OutputStream.Close() } catch { } }
+  } catch { Log "요청 처리 오류: $($_.Exception.Message)" 'Red' } finally { try { $res.OutputStream.Close() } catch { } }
 }
+Log '서버가 멈췄습니다. 이 창을 닫고 실행_윈도우.bat을 다시 실행하세요.' 'Red'
