@@ -79,6 +79,76 @@ textarea { min-height: 96px; resize: vertical }
 #wires.boost path.on { stroke-width: 4 }
 #wires path.cut { stroke: var(--signal); stroke-dasharray: 6 5 }
 #wires circle { fill: var(--signal) }
+#wires path.on:not(.cut) { stroke-dasharray: 12 6; animation: stream 1s linear infinite }
+#wires circle.tick { fill: var(--bright); opacity: .9 }
+@keyframes stream { to { stroke-dashoffset: -18 } }
+/* 시안 A · 빛줄기 연결도 */
+.map-page > .jobs.grid30 { flex: none }
+#stage { display: grid !important; grid-template-columns: minmax(124px, 28%) minmax(36px, 1fr) minmax(168px, 38%); grid-template-rows: auto 1fr auto auto; gap: 6px 10px; align-items: stretch; color: #e2e8f0; padding: 12px 14px !important }
+#stage > #dream { grid-column: 1; grid-row: 1; align-self: start; font-size: .72rem; line-height: 1.35; color: #cbd5e1 }
+#dream b { display: block; margin: 2px 0; font-size: .9rem; color: #fff; text-shadow: 0 0 10px rgba(34, 211, 238, .75); word-break: keep-all }
+#dream.new { animation: dream-in .6s ease-out }
+@keyframes dream-in { from { opacity: 0; transform: translateY(6px) } }
+#stage > .hub { grid-column: 2; grid-row: 1; align-self: start; justify-self: center; width: auto; padding: 0 !important; background: none; border: 0; border-radius: 0; box-shadow: none !important; text-align: center }
+#stage > .hub strong { font-size: .8rem; color: #a5f3fc; letter-spacing: .04em; white-space: nowrap; text-shadow: 0 0 8px #22d3ee }
+#stage > .hub span { display: block; font-size: .64rem; color: #cbd5e1; white-space: nowrap }
+#stage.complete > .hub strong { color: #4ade80; text-shadow: 0 0 10px #4ade80 }
+#sources { grid-column: 1; grid-row: 2; align-self: center; display: grid; gap: 14px; position: relative; z-index: 1 }
+.src { position: relative; padding: 5px 9px; border-radius: 10px; color: #fff; overflow: hidden; border: 1.5px solid; line-height: 1.25 }
+.src b { display: block; font-size: .78rem } .src small { display: block; font-size: .62rem; opacity: .85 }
+.src .bin { display: block; font: .56rem/1.2 monospace; letter-spacing: 1px; white-space: nowrap; opacity: .85; animation: bin 7s linear infinite }
+@keyframes bin { to { transform: translateX(-50%) } }
+.src.g1 { background: rgba(34, 211, 238, .16); border-color: #22d3ee; box-shadow: 0 0 14px rgba(34, 211, 238, .55) } .src.g1 .bin { color: #67e8f9 }
+.src.g2 { background: rgba(232, 121, 249, .16); border-color: #e879f9; box-shadow: 0 0 14px rgba(232, 121, 249, .55) } .src.g2 .bin { color: #f0abfc }
+.src.g3 { background: rgba(251, 191, 36, .14); border-color: #fbbf24; box-shadow: 0 0 14px rgba(251, 191, 36, .55) } .src.g3 .bin { color: #fcd34d }
+#stage > .skills { grid-column: 3; grid-row: 1 / 3; grid-template-columns: minmax(0, 1fr) !important; gap: 3px; align-content: center; position: relative; z-index: 1 }
+#stage .skill { display: flex; justify-content: space-between; align-items: center; gap: 6px; min-height: 22px; padding: 1px 8px; border-radius: 6px; background: rgba(255, 255, 255, .06); border: 1px solid transparent; color: #e2e8f0; text-align: left }
+#stage .skill b { font-size: .7rem; color: inherit } #stage .skill em { font-size: .66rem; color: #a5f3fc; font-weight: 700 }
+#stage .skill i { top: 0; bottom: 0; left: 0; right: auto; height: auto !important; width: 0; opacity: .6; border-radius: 6px; transition: width .35s ease-out }
+#stage .skill[aria-pressed="true"] { border-color: #f472b6 }
+#stage .skill.done { border-color: #4ade80 } #stage .skill.done em { color: #4ade80 }
+#stage > .gate.plus { grid-column: 1 / -1; grid-row: 3; position: relative; z-index: 1 } #stage > .gate.minus { grid-column: 1 / -1; grid-row: 4; position: relative; z-index: 1 }
+#stage .chip { background: rgba(255, 255, 255, .08); color: #cbd5e1; border: 1px dashed rgba(203, 213, 225, .35) }
+#stage .gate.plus .chip[aria-pressed="true"] { background: #0e7490; color: #fff; border: 1px solid #22d3ee }
+#stage .gate.minus .chip[aria-pressed="true"] { background: #b91c1c; color: #fff; border: 1px solid #fb7185 }
+#stage .chip.draw { color: #fda4af; border-color: #fb7185 }
+#wires path.pair, #wires path.strand { opacity: 0; transition: opacity .4s }
+#wires path.pair.on { opacity: .95; stroke: currentColor; stroke-width: 1.5; filter: drop-shadow(0 0 3px currentColor); stroke-dasharray: none; animation: none }
+#wires path.strand.on { opacity: .38; stroke: currentColor; stroke-width: .7; filter: none; stroke-dasharray: none; animation: none }
+#wires path.sk { opacity: 0 } #wires path.sk.cut { opacity: 1 }
+#wires circle.col { r: 1.6; fill: #22d3ee; filter: none; opacity: .3; animation: twinkle 2.4s ease-in-out infinite }
+#wires circle.col.g2 { fill: #e879f9 } #wires circle.col.g3 { fill: #fbbf24 }
+@keyframes twinkle { 50% { opacity: 1 } }
+.job.mini[data-slot="g1"] { background: #0e7490; color: #fff; border-color: #22d3ee }
+.job.mini[data-slot="g2"] { background: #a21caf; color: #fff; border-color: #e879f9 }
+.job.mini[data-slot="g3"] { background: #b45309; color: #fff; border-color: #fbbf24 }
+.job.mini[data-slot] small, .job.mini[data-slot] em { color: inherit }
+.jobs.grid30 .job.mini { min-height: 25px; padding: 1px 5px }
+.jobs.grid30 .job.mini b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1 1 auto }
+#stage .skill { min-height: 19px !important; padding: 0 8px !important }
+#stage > .skills { gap: 2px !important }
+#stage .chip { min-height: 26px; padding: 2px 8px; font-size: .68rem }
+#stage .gate > b { font-size: .72rem }
+/* 강화할 역량은 오른쪽 역량 필드와 예측 직무 문구가 보여 주므로 1쪽 아래 줄은 숨긴다 */
+.top-line { display: none !important }
+.info-box { min-height: 30px !important; padding: 4px 12px !important; font-size: .8rem !important }
+/* 1쪽 지도앱: 어두운 데이터 캔버스 위에서 빛나는 곡선과 흐르는 점 (나머지 화면은 밝게 유지) */
+#stage { background: radial-gradient(120% 90% at 50% 42%, #16305c 0%, #0b1a38 55%, #060d1f 100%) !important }
+#wires path { stroke: rgba(148, 163, 184, .16); stroke-width: 1 }
+#wires path.on { stroke-width: 2; filter: drop-shadow(0 0 3px currentColor) }
+#wires path.g1 { color: #22d3ee } #wires path.g2 { color: #e879f9 } #wires path.g3 { color: #fbbf24 } #wires path.pk { color: #7dd3fc }
+#wires path.on.g1 { stroke: #22d3ee } #wires path.on.g2 { stroke: #e879f9 } #wires path.on.g3 { stroke: #fbbf24 } #wires path.on.pk { stroke: #7dd3fc }
+#wires path.strand { stroke-width: .8; opacity: 0; filter: none; animation: none; stroke-dasharray: none }
+#wires path.strand.on { opacity: .45; stroke: currentColor }
+#wires path.sk.on { stroke: url(#skillGrad); color: #c084fc }
+#wires path.cut { stroke: #fb7185; color: #fb7185; filter: drop-shadow(0 0 3px #fb7185) }
+#wires.boost path.on:not(.strand) { stroke-width: 3.2 }
+#wires circle { filter: drop-shadow(0 0 5px currentColor); color: #f472b6; fill: #f472b6 }
+#wires circle.tick { opacity: 1; color: #c4b5fd; fill: #e9d5ff }
+#wires circle.g1 { color: #22d3ee; fill: #a5f3fc } #wires circle.g2 { color: #e879f9; fill: #f5d0fe } #wires circle.g3 { color: #fbbf24; fill: #fde68a } #wires circle.pk { color: #7dd3fc; fill: #e0f2fe }
+#stage .cat > b { color: #cbd5e1 }
+#stage .gate.plus > b { color: #67e8f9 } #stage .gate.minus > b { color: #fda4af }
+#stage .hub { box-shadow: 0 0 0 4px rgba(34, 211, 238, .18), 0 0 26px rgba(34, 211, 238, .35) }
 .jobs, .skills { position: relative; display: grid; gap: 8px }
 .jobs { grid-template-columns: repeat(3, minmax(0, 1fr)) }
 .skills { grid-template-columns: repeat(5, minmax(0, 1fr)) }
@@ -273,6 +343,9 @@ input[type="text"], textarea, select { border-radius: 14px }
   .steps li { padding-right: 4px }
 }
 /* 좁은 화면: 위아래로 이어서 보여 준다 (지도 고정 없음, 두 쪽 모두 표시) */
+@media (min-width: 900px) {
+  .app { zoom: var(--z, 1); width: calc((100vw - 32px) / var(--z, 1)); height: calc((100vh - 24px) / var(--z, 1)) }
+}
 @media (max-width: 899px) {
   .app { height: auto; grid-template-columns: minmax(0, 1fr); grid-template-rows: none; row-gap: 12px }
   .top, #installMsg, .map-page, .flow-page { grid-row: auto }
@@ -293,6 +366,8 @@ input[type="text"], textarea, select { border-radius: 14px }
   h1 { font-size: 1.5rem }
   .jobs.all { grid-template-columns: repeat(2, minmax(0, 1fr)) }
   .jobs.grid30 { grid-template-columns: repeat(3, minmax(0, 1fr)) }
+  #stage { grid-template-columns: minmax(92px, 30%) minmax(16px, 1fr) minmax(132px, 42%) !important; padding: 10px !important }
+  #stage > .hub strong { font-size: .66rem }
   .skills { grid-template-columns: repeat(3, minmax(0, 1fr)) }
   .choices { grid-template-columns: minmax(0, 1fr) }
   .stage-row { grid-template-columns: minmax(0, 1fr) 62px minmax(0, 1fr) }
@@ -300,7 +375,7 @@ input[type="text"], textarea, select { border-radius: 14px }
   .job b { font-size: .82rem }
   .skill b { font-size: .76rem }
 }
-@media (prefers-reduced-motion: reduce) { .skill i, .track i { transition: none } .hub.pulse, #stage.complete .hub { animation: none } }
+@media (prefers-reduced-motion: reduce) { .src .bin, #wires circle.col, #dream.new { animation: none } .skill i, .track i { transition: none } .hub.pulse, #stage.complete .hub, #wires path.on:not(.cut) { animation: none } #wires path.on:not(.cut) { stroke-dasharray: none } }
 </style>
 
 </head><body>
@@ -328,20 +403,21 @@ input[type="text"], textarea, select { border-radius: 14px }
   <aside class="page map-page">
     <section class="step" id="mapHead">
       <h1>전문가 30 · 강화할 AI 역량</h1>
-      <p class="help">관심 전문가를 최대 3명 누르세요. 2쪽에서 답할수록 조건이 더해집니다.</p>
       <div class="actions">
         <button class="main-btn" id="mapPlay" type="button">1~30 차례로 쌓기</button>
         <button class="line-btn" id="mapReset" type="button">지도 비우기</button>
         <button class="line-btn" id="mapClose" type="button" hidden>내 지도로</button>
       </div>
     </section>
+    <div class="jobs" id="jobs"></div>
     <div id="stage">
       <svg id="wires" aria-hidden="true"></svg>
-      <div class="jobs" id="jobs"></div>
-      <div class="gate plus" id="plusGate"></div>
-      <div class="hub" id="hub"><strong>경험 × AI</strong><span id="hubText"></span></div>
-      <div class="gate minus" id="minusGate"></div>
+      <div id="dream" aria-live="polite"></div>
+      <div class="hub" id="hub"><strong>│ 경험 × AI │</strong><span id="hubText"></span></div>
+      <div id="sources"></div>
       <div class="skills" id="skills"></div>
+      <div class="gate plus" id="plusGate"></div>
+      <div class="gate minus" id="minusGate"></div>
     </div>
     <div class="info-box empty" id="info" aria-live="polite"></div>
     <section class="step" id="mapInfo">
@@ -830,45 +906,83 @@ $('fiveFields').innerHTML = FIVE.map(([k, n, h]) => `<label class="field">${n} �
 
 const stage = $('stage'), wires = $('wires'), hub = $('hub'), NS = 'http://www.w3.org/2000/svg';
 const calm = matchMedia('(prefers-reduced-motion: reduce)');
-let jobWire = {}, skillWire = {}, flowing = 0;
+let jobWire = {}, skillWire = {}, pairWire = [], flowing = 0;
+// 출발점(목표 1~3순위, 없으면 관심 전문가) 색: 청록·자홍·금색
+const SLOT_C = ['g1', 'g2', 'g3'], SLOT_HEX = { g1: '#22d3ee', g2: '#e879f9', g3: '#fbbf24' };
+// '이런 선택이면 예측되는 직무는 [AI로 할 수 있는 일] [분야] 전문가입니다' 추론 규칙 (50~60대 대상: 구체적인 직무명)
+// 예: 키울 역량 1위 '자료 분석' + 1순위 '시설운영개선'(시설·데이터) → 'AI 예측·분석이 가능한 시설 전문가'
+const SKILL_CAN = ['AI 활용 교육이', 'AI 질문 설계가', 'AI로 노하우 정리가', 'AI 예측·분석이', 'AI 문서 자동화가', 'AI 업무도구 제작이', 'AI 결과 검증이', 'AI 확산·공유가',
+  'AI 에이전트 운영이', 'AI 에이전트 팀 관리가', 'AI 보안 관리가', 'AI 영상·음성 분석이', 'AI 성과 측정이', 'AI 저작권 관리가'];
+const CAT_FIELD = ['업무개선', '기술', '교육', '시설', '영업', '창업·도입'];
+console.assert(SKILL_CAN.length === 14 && CAT_FIELD.length === 6, 'job phrase table');
 // 전체 지도 상태. 진단 결과와 별개로 30명을 차례로 쌓아 보는 보기
 let full = false, mapRun = 0, mapPlaying = false;
 const picked = new Set(), arrived = SKILLS.map(() => new Set());
 
 function fitMap() {
   const mp = document.querySelector('.map-page');
-  stage.style.zoom = '';
+  // 1쪽에 다 들어가지 않으면 전문가 표와 캔버스를 함께 80%까지 줄인다
+  const group = [$('jobs'), stage];
+  group.forEach(e => { e.style.zoom = ''; });
   const over = mp.scrollHeight - mp.clientHeight;
-  if (over > 0 && getComputedStyle(mp).overflowY !== 'visible') { const h = stage.offsetHeight; stage.style.zoom = Math.max(.8, (h - over) / h).toFixed(3); }
+  if (over > 0 && getComputedStyle(mp).overflowY !== 'visible') {
+    const h = group.reduce((s, e) => s + e.offsetHeight, 0), z = Math.max(.8, (h - over) / h).toFixed(3);
+    group.forEach(e => { e.style.zoom = z; });
+  }
+}
+// 출발점: 전체 지도에서는 방금 쌓은 3명, 내 지도에서는 목표 1~3순위 다음 관심 전문가 (최대 3)
+function sourceList() {
+  if (full) return [...picked].slice(-3);
+  return [...S.goals, ...S.picks.filter(j => !S.goals.includes(j))].slice(0, 3);
+}
+const binary = j => { const s = ((j + 7) * 2654435761 >>> 0).toString(2).padStart(32, '0'); return s + s; };
+function renderSources() {
+  const list = sourceList(), key = `${list.join()}|${full}|${S.goals.join()}`;
+  if ($('sources').dataset.key === key) return;
+  $('sources').dataset.key = key;
+  $('sources').innerHTML = list.map((j, i) => {
+    const g = full ? -1 : S.goals.indexOf(j);
+    return `<div class="src ${SLOT_C[i]}" data-job="${j}" data-c="${SLOT_C[i]}"><b>${g >= 0 ? '①②③'[g] : '◆'} ${SHORT[j]}</b><small>${full ? '쌓는 중' : g >= 0 ? `${g + 1}순위 목표` : '관심 전문가'}</small><span class="bin" aria-hidden="true">${binary(j)}</span></div>`;
+  }).join('');
 }
 function drawWires() {
   if (stage.hidden) return;
+  renderSources();
   fitMap();
-  const b = stage.getBoundingClientRect(), h = hub.getBoundingClientRect();
+  const b = stage.getBoundingClientRect(), h = hub.getBoundingClientRect(), sk = $('skills').getBoundingClientRect();
   wires.setAttribute('viewBox', `0 0 ${b.width} ${b.height}`);
-  wires.replaceChildren(); jobWire = {}; skillWire = {};
-  const add = (d, map, k) => { const p = document.createElementNS(NS, 'path'); p.setAttribute('d', d); wires.append(p); map[k] = p; };
-  const slot = (i, n) => h.left - b.left + h.width * (n > 1 ? .15 + .7 * i / (n - 1) : .5);
-  const hubTop = h.top - b.top, hubBottom = h.bottom - b.top;
-  // 선은 고른 전문가에서만 나온다 (30명 모두 그리면 지도가 복잡해진다)
-  [...document.querySelectorAll('.job')].filter(e => isActive(Number(e.dataset.job))).forEach((e, i, all) => {
-    const r = e.getBoundingClientRect(), x = r.left - b.left + r.width / 2, y = r.bottom - b.top;
-    add(`M${x} ${y}V${y + (hubTop - y) * .4}H${slot(i, all.length)}V${hubTop}`, jobWire, e.dataset.job);
-  });
-  SKILLS.forEach((_, i) => {
-    const r = $('skill' + i).getBoundingClientRect(), x = r.left - b.left + r.width / 2, y = r.top - b.top;
-    add(`M${slot(i, SKILLS.length)} ${hubBottom}V${hubBottom + (Math.min(y, hubBottom + 200) - hubBottom) * .5}H${x}V${y}`, skillWire, i);
+  wires.replaceChildren(); jobWire = {}; skillWire = {}; pairWire = [];
+  const add = (d, cls, c) => { const p = document.createElementNS(NS, 'path'); p.setAttribute('d', d); p.setAttribute('class', cls); if (c) p.dataset.c = c; wires.append(p); return p; };
+  wires.insertAdjacentHTML('afterbegin', `<defs><linearGradient id="skillGrad" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="${b.width}" y2="0"><stop offset="0" stop-color="#22d3ee"/><stop offset=".5" stop-color="#e879f9"/><stop offset="1" stop-color="#fbbf24"/></linearGradient></defs>`);
+  const hx = h.left - b.left + h.width / 2, top = sk.top - b.top, bottom = sk.bottom - b.top;
+  // 경험 × AI 빛기둥: 세 가지 색 점이 반짝이는 세로 기둥
+  for (let y = top, i = 0; y <= bottom; y += 9, i++) {
+    const c = document.createElementNS(NS, 'circle');
+    c.setAttribute('cx', hx); c.setAttribute('cy', y); c.setAttribute('r', 1.6); c.setAttribute('class', `col ${SLOT_C[i % 3]}`);
+    c.style.animationDelay = `${(i * 0.37) % 2.4}s`; wires.append(c);
+  }
+  const at = k => { const r = $('skill' + k).getBoundingClientRect(); return [r.left - b.left, r.top - b.top + r.height / 2]; };
+  SKILLS.forEach((_, k) => { const [kx, y] = at(k); skillWire[k] = add(`M${hx} ${y}L${kx} ${y}`, 'sk'); });
+  stage.querySelectorAll('.src').forEach(el => {
+    const j = Number(el.dataset.job), c = el.dataset.c, r = el.getBoundingClientRect(), sx = r.right - b.left, sy = r.top - b.top + r.height / 2;
+    JOBS[j].s.forEach(k => {
+      const [kx, y] = at(k), mid = (sx + hx) / 2;
+      const d = o => `M${sx} ${sy}C${mid + o} ${sy} ${hx - (hx - sx) * .25} ${y + o * .4} ${hx} ${y}S${kx - 24} ${y} ${kx} ${y}`;
+      const main = add(d(0), `pair ${c}`, c); main.dataset.j = j; main.dataset.k = k; pairWire.push(main);
+      [-18, -8, 8, 18].forEach(o => { const f = add(d(o), `strand ${c}`, c); f.dataset.j = j; f.dataset.k = k; });
+    });
   });
   paint();
 }
+const pairsOf = (j, ks) => pairWire.filter(p => Number(p.dataset.j) === j && (!ks || ks.includes(Number(p.dataset.k))));
 
-function fly(path) {
+function fly(path, tick = false) {
   if (calm.matches || !path) return Promise.resolve();
-  const dot = document.createElementNS(NS, 'circle'), len = path.getTotalLength(), t0 = performance.now(), ms = 520;
-  dot.setAttribute('r', 6); wires.append(dot);
+  const dot = document.createElementNS(NS, 'circle'), len = path.getTotalLength(), t0 = performance.now(), ms = tick ? 1500 : 900;
+  dot.setAttribute('r', tick ? 3.5 : 6); if (tick) dot.setAttribute('class', `tick ${path.dataset.c || ''}`); wires.append(dot);
   return new Promise(done => {
     const finish = () => { dot.remove(); done(); };
-    const timer = setTimeout(finish, ms + 150); // 창이 가려져 프레임이 멈춰도 다음 단계로 진행한다
+    const timer = setTimeout(finish, ms + 200); // 창이 가려져 프레임이 멈춰도 다음 단계로 진행한다
     const step = now => {
       const t = Math.min((now - t0) / ms, 1), p = path.getPointAtLength(len * t);
       dot.setAttribute('cx', p.x); dot.setAttribute('cy', p.y);
@@ -896,11 +1010,14 @@ function paintFull() {
   });
   SKILLS.forEach((_, k) => {
     const n = arrived[k].size, cell = $('skill' + k);
-    cell.querySelector('i').style.height = n / MAX[k] * 100 + '%';
+    cell.querySelector('i').style.width = n / MAX[k] * 100 + '%';
+    cell.querySelector('i').style.background = '#7dd3fc';
     cell.querySelector('em').textContent = `${n} / ${MAX[k]}`;
     skillWire[k]?.classList.toggle('on', n > 0);
     skillWire[k]?.classList.remove('cut');
   });
+  wires.querySelectorAll('path.pair, path.strand').forEach(p => p.classList.toggle('on', arrived[Number(p.dataset.k)].has(Number(p.dataset.j))));
+  $('dream').innerHTML = '<small>전체 지도</small><b>30명이 쌓는 역량</b><small>칸마다 이어진 전문가 수를 보여 줍니다.</small>';
   const sum = arrived.reduce((a, s) => a + s.size, 0), top = Math.max(...arrived.map(a => a.size));
   $('hubText').textContent = `${picked.size}개 직업 · ${sum}개 연결`;
   $('mapTotal').textContent = `${sum} / ${TOTAL}`;
@@ -910,11 +1027,9 @@ function paintFull() {
 
 async function addMapJob(j) {
   picked.add(j); drawWires();
-  await fly(jobWire[j]);
-  if (!picked.has(j)) return;
   hub.classList.remove('pulse'); void hub.offsetWidth; hub.classList.add('pulse');
   await Promise.all(JOBS[j].s.map(async k => {
-    await fly(skillWire[k]);
+    await fly(pairsOf(j, [k])[0]);
     if (picked.has(j)) { arrived[k].add(j); paintFull(); }
   }));
 }
@@ -948,7 +1063,14 @@ const rowsNow = () => S.choice !== null ? personalRows() : S.picks.length && S.g
 // 단계별로 더해진 조건 (1쪽에 항상 표시)
 const CONDS = [['경력', () => S.groups.length], ['경험', () => S.expType !== null], ['일하는 방식', () => S.sides.some(n => n !== null)], ['관심 전문가', () => S.picks.length],
   ['목표', () => S.choice !== null], ['자가진단', () => Object.keys(S.self).length], ['적용 조건', () => S.checks.length], ['도움·돌발', () => S.plus.length + S.minus.length]];
+function dreamHtml(rows) {
+  const src = sourceList();
+  if (!src.length || !rows.length) return '<small>관심 전문가를 최대 3명 누르면</small><b>당신이 발전할 AI 전문가</b><small>를 보여 드립니다. 2쪽에서 답할수록 조건이 더해집니다.</small>';
+  return `<small>이런 선택이면 당신은</small><b>“${SKILL_CAN[rows[0].k]} 가능한 ${CAT_FIELD[CAT[src[0]]]} 전문가”</b><small>로 발전합니다.</small>`;
+}
 function paintMine(rows) {
+  const dh = dreamHtml(rows);
+  if ($('dream').dataset.html !== dh) { $('dream').dataset.html = dh; $('dream').innerHTML = dh; $('dream').classList.remove('new'); void $('dream').offsetWidth; $('dream').classList.add('new'); }
   const on = CONDS.filter(([, f]) => f());
   $('condCount').textContent = `${on.length} / ${CONDS.length}`;
   if (!replaying) $('condChips').innerHTML = CONDS.map(([n, f]) => `<i class="${f() ? 'on' : ''}">${n}</i>`).join('');
@@ -960,6 +1082,8 @@ function paintMine(rows) {
     e.querySelector('em').textContent = g >= 0 ? ['①', '②', '③'][g] : r >= 0 ? `★${r + 1}` : extra.includes(j) ? '☆' : '';
     e.classList.toggle('goal', g === 0);
     e.classList.toggle('goal2', g > 0);
+    const slot = sourceList().indexOf(j);
+    e.dataset.slot = slot >= 0 ? SLOT_C[slot] : '';
   });
 }
 
@@ -976,9 +1100,14 @@ function paint(filled = true) {
     e.setAttribute('aria-pressed', on);
     jobWire[e.dataset.job]?.classList.toggle('on', on);
   });
+  const lit = new Set(filled ? rows.map(r => r.k) : []), src = sourceList();
+  wires.querySelectorAll('path.pair, path.strand').forEach(p => p.classList.toggle('on', lit.has(Number(p.dataset.k))));
   SKILLS.forEach((_, k) => {
     const r = rows.find(x => x.k === k), cell = $('skill' + k);
-    cell.querySelector('i').style.height = filled && r ? r.pct / top * 100 + '%' : '0';
+    // 칸은 가로로 차오르고, 이 역량을 키우는 출발점들의 색이 섞인다 (출발점과 무관하면 경력에서 온 역량: 회색)
+    const tones = src.map((j, i) => JOBS[j].s.includes(k) ? SLOT_HEX[SLOT_C[i]] : null).filter(Boolean);
+    cell.querySelector('i').style.width = filled && r ? r.pct / top * 100 + '%' : '0';
+    cell.querySelector('i').style.background = tones.length > 1 ? `linear-gradient(90deg, ${tones.join(', ')})` : tones[0] || '#64748b';
     const fin = S.step === LAST && filled && r && has(S.done, k);
     cell.classList.toggle('done', Boolean(fin));
     cell.querySelector('em').textContent = filled && r ? `${fin ? '✓ 완료 ' : first.includes(k) ? '먼저 ' : ''}${r.pct}%` : '—';
@@ -998,27 +1127,25 @@ let replaying = 0;
 async function playConclusion() {
   if (full) return;
   const run = ++flowing, wait = ms => new Promise(r => setTimeout(r, calm.matches ? 0 : ms));
-  replaying = run;
+  replaying = run; lastFlow = Date.now();
   drawWires(); paint(false);
   const chips = [...document.querySelectorAll('#condChips i')], lit = chips.filter(c => c.classList.contains('on'));
   lit.forEach(c => c.classList.remove('on'));
   const done = () => { if (replaying === run) replaying = 0; };
   for (const c of lit) { await wait(120); if (run !== flowing) return done(); c.classList.add('on'); }
-  for (const j of S.goals) { await fly(jobWire[j]); if (run !== flowing) return done(); }
+  const ks = rowsNow().map(r => r.k);
+  for (const j of sourceList()) { await Promise.all(pairsOf(j, ks).map(p => fly(p))); if (run !== flowing) return done(); }
   hub.classList.remove('pulse'); void hub.offsetWidth; hub.classList.add('pulse');
-  await Promise.all(rowsNow().map(r => fly(skillWire[r.k])));
   done();
   if (run === flowing) paint();
 }
 
 // 전문가 → 경험×AI → 역량으로 점이 흐른 뒤 칸이 차오른다
 async function flowFrom(j) {
-  const run = ++flowing;
+  const run = ++flowing; lastFlow = Date.now();
   drawWires(); paint(false);
-  await fly(jobWire[j]);
-  if (run !== flowing) return;
   hub.classList.remove('pulse'); void hub.offsetWidth; hub.classList.add('pulse');
-  await Promise.all(rowsNow().map(r => fly(skillWire[r.k])));
+  await Promise.all(pairsOf(j, rowsNow().map(r => r.k)).map(p => fly(p)));
   if (run === flowing) paint();
 }
 const jobInfo = j => `<b>${NUM[j]}. ${JOBS[j].n}</b><p>${JOBS[j].w}</p><ul class="tags">${JOBS[j].s.map(k => `<li>${SKILLS[k]}</li>`).join('')}</ul>`;
@@ -1129,7 +1256,7 @@ const ENTER = {
       <dt>목표</dt><dd>${S.goals.map((j, i) => `${i + 1}순위 ${esc(JOBS[j].n)}`).join(' · ')}</dd></dl>
       <div><h3>강화할 AI 역량 · ${hours}시간 기준</h3><ul class="bars">${rows.slice(0, 3).map(r => `<li><div><b>${SKILLS[r.k]}</b><span>${r.pct}% · 약 ${(r.pct * hours / 100).toFixed(1)}시간</span></div><span class="bar"><i style="width:${r.pct}%"></i></span></li>`).join('')}</ul>${rows.length > 3 ? `<p class="help">그 밖에 ${rows.slice(3).map(r => SKILLS[r.k]).join(', ')}</p>` : ''}</div>
       <div><h3>지금 할 일</h3><p><b>${nextStep(finalLevel(), rows, m.form.split(',')[0].trim())}</b></p></div>`;
-    showInfo(`<p><b>결론 · ${v.t}</b> · ${esc(identity(rows))}</p><p class="help">목표 역할: ${esc(m.role)} · 먼저 배울 것: ${rows.slice(0, 2).map(r => SKILLS[r.k]).join(', ')}</p>`);
+    showInfo(`<p><b>결론 · ${v.t}</b> · 먼저 배울 것: ${rows.slice(0, 2).map(r => SKILLS[r.k]).join(', ')} · 목표 역할: ${esc(m.role)}</p>`);
   }
 };
 
@@ -1385,6 +1512,23 @@ $('fontBtn').addEventListener('click', e => {
   e.target.textContent = big ? '글자 보통' : '글자 크게';
 });
 new ResizeObserver(drawWires).observe(stage);
+// 화면 크기에 맞춰 앱 전체를 키우고 줄인다 (기준 1366×768 = 100%, 85~180%). 좁은 화면은 위아래 배치라 그대로
+function fitScreen() {
+  const z = innerWidth >= 900 ? Math.min(1.8, Math.max(0.85, Math.min(innerWidth / 1366, innerHeight / 768))) : 1;
+  document.documentElement.style.setProperty('--z', z.toFixed(3));
+}
+fitScreen();
+addEventListener('resize', () => { fitScreen(); drawWires(); });
+// 실시간 연결처럼: 약 2초마다 데이터 점이 고른 전문가 → 경험×AI → 역량 칸으로 흐른다
+// (움직임 줄이기 설정, 창이 가려졌을 때, 전체 지도·결론 재생·방금 고른 흐름 중에는 쉰다)
+let lastFlow = 0;
+setInterval(async () => {
+  if (calm.matches || document.hidden || full || replaying || Date.now() - lastFlow < 2500) return;
+  const ps = pairWire.filter(p => p.classList.contains('on'));
+  if (!ps.length) return;
+  const twice = p => Promise.all([fly(p, true), new Promise(r => setTimeout(r, 450)).then(() => fly(p, true))]);
+  ps.forEach(twice);
+}, 2000);
 
 // 온라인 앱에서만 설치 파일을 내려받는다. 설치된 앱에는 파일이 들어 있지 않아 버튼이 숨는다.
 const zipText = $('installerZip').textContent.trim();
