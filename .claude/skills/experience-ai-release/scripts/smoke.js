@@ -8,7 +8,7 @@ const file = process.argv[2], out = process.argv[3];
     const errs = [];
     p.on('console', m => { if (['error', 'assert', 'warning'].includes(m.type())) errs.push(m.type() + ': ' + m.text()); });
     p.on('pageerror', e => errs.push('PAGEERROR: ' + e.message));
-    await p.goto('file://' + file);
+    await p.goto(require('url').pathToFileURL(require('path').resolve(file)).href); // 상대 경로도 허용
     const W = vp.width;
     await p.click('[data-status="r"]');
     await p.fill('#name', '테스트');

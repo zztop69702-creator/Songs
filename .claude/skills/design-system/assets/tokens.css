@@ -1,0 +1,40 @@
+/* 송유성 디자인 시스템 토큰 (Premium Neo Graphic × Swiss Editorial, B안 그래픽 강조형)
+   사용: <html data-theme-variant="1|2|3"> 로 시안을 고른다. 기본 1안.
+   글꼴 파일은 프로젝트 fonts/ 에 두고 아래 @font-face 파일 이름을 실제 받은 파일에 맞춘다(아래 이름은 예시).
+   상업적 사용·앱 포함 재배포 라이선스 확인 전에는 파일을 넣지 않아도 대체 글꼴(SUIT·맑은 고딕)로 동작한다. */
+@font-face { font-family: 'Paperlogy'; src: url('fonts/Paperlogy-4Regular.woff2') format('woff2'); font-weight: 400; font-display: swap; }
+@font-face { font-family: 'Paperlogy'; src: url('fonts/Paperlogy-5Medium.woff2') format('woff2'); font-weight: 500; font-display: swap; }
+@font-face { font-family: 'Paperlogy'; src: url('fonts/Paperlogy-7Bold.woff2') format('woff2'); font-weight: 700; font-display: swap; }
+@font-face { font-family: 'Paperlogy'; src: url('fonts/Paperlogy-8ExtraBold.woff2') format('woff2'); font-weight: 800; font-display: swap; }
+@font-face { font-family: 'Cafe24 PRO Slim'; src: url('fonts/Cafe24PROSlim.woff2') format('woff2'); font-display: swap; }
+
+:root {
+  --navy: #101E31;            /* 기본 바탕(진한 면)·제목 글자 */
+  --point: #3478F6;           /* 1안 포인트 블루 */
+  --point-ink: #ffffff;       /* 포인트 위 글자 */
+  --surface: #ffffff;
+  --surface-2: #F3F6FA;       /* 아주 옅은 회청 */
+  --line: #D7DEE8;
+  --ink: #101E31;
+  --muted: #5A6577;
+  --font-title: 'Paperlogy', 'SUIT', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+  --font-body: 'Paperlogy', 'SUIT', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+  --font-number: 'Cafe24 PRO Slim', 'Paperlogy', 'SUIT', sans-serif;
+  --u: 8px;                   /* 기준 단위 */
+  --radius: 14px;
+  --glow: 0 0 24px color-mix(in srgb, var(--point) 45%, transparent);
+  font-size: 18px;
+}
+:root[data-theme-variant="2"] { --point: #19A66B; }
+:root[data-theme-variant="3"] { --point: #EF5555; }
+
+body { margin: 0; background: var(--surface-2); color: var(--ink); font-family: var(--font-body); font-weight: 400; line-height: 1.55; word-break: keep-all; }
+h1, h2, h3 { font-family: var(--font-title); font-weight: 800; letter-spacing: -0.01em; line-height: 1.25; }
+.big-number { font-family: var(--font-number); font-variant-numeric: tabular-nums; font-size: 3rem; line-height: 1; color: var(--point); }
+.panel-dark { background: var(--navy); color: #EEF3FA; border-radius: var(--radius); padding: calc(var(--u) * 3); }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: calc(var(--u) * 3); }
+.btn { min-height: 44px; padding: 0 calc(var(--u) * 2.5); border-radius: 12px; border: 2px solid var(--point); background: var(--point); color: var(--point-ink); font: 700 1rem var(--font-title); cursor: pointer; }
+.btn.line { background: transparent; color: var(--point); }
+.grid-12 { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: calc(var(--u) * 3); }
+@media (max-width: 899px) { .grid-12 { grid-template-columns: minmax(0, 1fr); } }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
