@@ -1,0 +1,1078 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AI다음행보</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: 50~60대가 한 화면에 한 가지만 답하는 10단계 진행. 큰 글씨와 큰 버튼을 기본으로 한다. */
+:root {
+  --desk: #14233c; --spine: #0b1526; --edge: #d8cdb3; --bg: #f7f3ea; --panel: #ece4d2; --card: #fffdf7; --ink: #14233c; --muted: #4d5a70;
+  --wire: #cfc5ad; --accent: #14233c; --gold: #7a5c16; --bright: #b8923a; --fill: #e8d6a3; --signal: #a8321f; --on-accent: #f7f3ea;
+  --font: "IBM Plex Sans KR", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+  --serif: "Noto Serif KR", "Batang", "바탕", "AppleMyungjo", serif;
+  font-size: 18px;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --desk: #0b1526; --spine: #050b16; --edge: #2c3d5a; --bg: #16233a; --panel: #1f2f4a; --card: #22344f; --ink: #f2ecdd; --muted: #b9c2d0;
+  --wire: #3d5072; --accent: #e0bd68; --gold: #e0bd68; --bright: #e0bd68; --fill: #6b5523; --signal: #ff9a7a; --on-accent: #14233c; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --desk: #0b1526; --spine: #050b16; --edge: #2c3d5a; --bg: #16233a; --panel: #1f2f4a; --card: #22344f; --ink: #f2ecdd; --muted: #b9c2d0;
+  --wire: #3d5072; --accent: #e0bd68; --gold: #e0bd68; --bright: #e0bd68; --fill: #6b5523; --signal: #ff9a7a; --on-accent: #14233c; color-scheme: dark }
+:root.big { font-size: 22px }
+
+* { box-sizing: border-box }
+[hidden] { display: none !important }
+body { background: var(--desk); overflow-x: clip; color: var(--ink); font-family: var(--font); font-size: 1rem; line-height: 1.55;
+  padding-block: 20px 40px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)) }
+.app { max-width: 860px; margin: 0 auto; display: grid; gap: 18px }
+button, input, textarea { font: inherit; color: inherit }
+button { cursor: pointer }
+:focus-visible { outline: 3px solid var(--signal); outline-offset: 2px }
+
+.top { display: flex; align-items: center; justify-content: space-between; gap: 12px }
+.brand { display: flex; align-items: center; gap: 8px; font-weight: 700; color: var(--accent) }
+.ver { font-weight: 500; color: var(--muted); font-size: .8rem }
+.logo { width: 38px; height: 38px; flex: none }
+.logo.large { width: 96px; height: 96px }
+.small-btn { background: transparent; border: 2px solid var(--accent); color: var(--accent); border-radius: 8px; padding: 6px 12px; font-weight: 600; min-height: 44px }
+.progress { display: grid; gap: 6px }
+.progress span { color: var(--muted); font-weight: 600; font-variant-numeric: tabular-nums }
+.track { height: 10px; background: var(--panel); border-radius: 5px; overflow: hidden }
+.track i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .25s }
+
+.step { display: grid; gap: 14px }
+h1 { font-size: 1.75rem; line-height: 1.3; margin: 0; text-wrap: balance; word-break: keep-all }
+h2 { font-size: 1.15rem; margin: 0; word-break: keep-all }
+p { margin: 0; word-break: keep-all }
+.help { color: var(--muted) }
+.warn { color: var(--signal); font-weight: 600 }
+label.field { display: grid; gap: 6px; font-weight: 600 }
+input[type="text"], textarea { width: 100%; background: var(--card); border: 2px solid var(--wire); border-radius: 10px; padding: 12px 14px; font-weight: 400 }
+textarea { min-height: 96px; resize: vertical }
+
+.choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px }
+.opt { display: grid; gap: 2px; text-align: left; align-content: start; min-height: 64px; background: var(--card); border: 2px solid var(--wire); border-radius: 12px; padding: 12px 14px; word-break: keep-all }
+.opt b { font-size: 1.08rem }
+.opt small { color: var(--muted); font-size: .86rem; line-height: 1.4 }
+.opt[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent) }
+.opt[aria-pressed="true"] small { color: inherit }
+
+.stage-row { display: grid; grid-template-columns: minmax(0, 1fr) 84px minmax(0, 1fr); gap: 8px }
+.stage-core { display: grid; place-content: center; text-align: center; background: var(--panel); border-radius: 10px; padding: 6px }
+.stage-core small { color: var(--muted); font-size: .76rem }
+.stage-core b { font-size: 1.1rem }
+.side { display: grid; align-content: center; gap: 1px; min-height: 76px; background: var(--card); border: 2px solid var(--wire); border-radius: 10px; padding: 8px 10px; word-break: keep-all }
+.side.left { text-align: right }
+.side.right { text-align: left }
+.side b { font-size: .86rem; color: var(--muted) }
+.side span { font-size: .95rem; line-height: 1.35; font-weight: 600 }
+.side[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent) }
+.side[aria-pressed="true"] b { color: inherit }
+
+#stage { position: relative; background: var(--panel); border-radius: 14px; padding: 14px; display: grid; gap: 36px }
+#wires { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none }
+#wires path { fill: none; stroke: var(--wire); stroke-width: 1.5 }
+#wires path.on { stroke: var(--accent); stroke-width: 2.5 }
+#wires.boost path.on { stroke-width: 4 }
+#wires path.cut { stroke: var(--signal); stroke-dasharray: 6 5 }
+#wires circle { fill: var(--signal) }
+.jobs, .skills { position: relative; display: grid; gap: 8px }
+.jobs { grid-template-columns: repeat(3, minmax(0, 1fr)) }
+.skills { grid-template-columns: repeat(4, minmax(0, 1fr)) }
+.job { display: grid; gap: 2px; align-content: start; text-align: left; background: var(--card); border: 2px solid var(--wire); border-radius: 10px; padding: 10px; word-break: keep-all }
+.job:only-child { grid-column: 1 / -1; text-align: center }
+.job small { color: var(--accent); font-weight: 700 }
+.job b { font-size: .95rem; line-height: 1.32 }
+.job[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent) }
+.job[aria-pressed="true"] small { color: inherit }
+.hub { position: relative; justify-self: center; width: min(300px, 100%); background: var(--card); border: 2px solid var(--accent); border-radius: 12px; padding: 10px 14px; text-align: center }
+.hub strong { display: block; font-size: 1.4rem; line-height: 1.2 }
+.hub span { color: var(--muted); font-size: .84rem }
+.hub.pulse { animation: pulse .45s ease-out }
+@keyframes pulse { 40% { transform: scale(1.05); border-color: var(--signal) } }
+.skill { position: relative; overflow: hidden; display: grid; align-content: center; gap: 1px; min-height: 76px; text-align: center; background: var(--card); border: 2px solid transparent; border-radius: 10px; padding: 8px 4px }
+.skill[aria-pressed="true"] { border-color: var(--signal) }
+.skill i { position: absolute; left: 0; right: 0; bottom: 0; height: 0; background: var(--fill); transition: height .35s ease-out }
+.skill b, .skill em { position: relative; font-style: normal }
+.skill b { font-size: .84rem; line-height: 1.25; word-break: keep-all }
+.skill em { font-size: .84rem; color: var(--muted); font-variant-numeric: tabular-nums }
+.gate { position: relative; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 6px }
+.gate > b { background: var(--panel); padding: 2px 6px; font-size: .86rem }
+.gate.plus > b { color: var(--accent) }
+.gate.minus > b { color: var(--signal) }
+.chip { background: var(--card); border: 2px solid var(--wire); border-radius: 8px; padding: 8px 10px; min-height: 44px; font-size: .86rem; font-weight: 600; word-break: keep-all }
+.gate.plus .chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent) }
+.gate.minus .chip[aria-pressed="true"] { background: var(--signal); border-color: var(--signal); color: var(--on-accent) }
+.chip.draw { border-style: dashed; border-color: var(--signal); color: var(--signal) }
+
+.rate { display: grid; gap: 12px; list-style: none; margin: 0; padding: 0 }
+.rate li { display: grid; gap: 6px }
+.scores { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px }
+.score { display: grid; align-content: center; gap: 1px; min-height: 64px; background: var(--card); border: 2px solid var(--wire); border-radius: 8px; padding: 6px 2px; font-weight: 700; word-break: keep-all }
+.score small { font-size: .74rem; font-weight: 600; line-height: 1.2 }
+.rate p { font-weight: 600 }
+.score[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent) }
+.conds { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px }
+.conds label { display: flex; gap: 10px; align-items: center; min-height: 56px; background: var(--card); border-radius: 10px; padding: 10px 14px; cursor: pointer; word-break: keep-all }
+.conds input { width: 24px; height: 24px; flex: none; accent-color: var(--accent) }
+.verdict { background: var(--panel); border-radius: 12px; padding: 14px 16px; display: grid; gap: 4px }
+.verdict strong { font-size: 1.2rem; color: var(--accent) }
+ul.plain { margin: 0; padding-left: 22px }
+
+.card { background: var(--card); border: 2px solid var(--accent); border-radius: 14px; padding: 18px; display: grid; gap: 14px }
+.card .who { color: var(--accent); font-weight: 700 }
+.card h2.main { font-size: 1.4rem; line-height: 1.4; text-wrap: balance }
+.card h3 { font-size: 1rem; margin: 0 0 4px; color: var(--accent) }
+.card dl { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 6px 12px; margin: 0 }
+.card dt { font-weight: 700; color: var(--accent) }
+.card dd { margin: 0; word-break: keep-all }
+.bars { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px }
+.bars div { display: flex; justify-content: space-between; gap: 8px }
+.bars span { color: var(--muted); font-variant-numeric: tabular-nums }
+.bar { display: block; height: 10px; background: var(--panel); border-radius: 5px; overflow: hidden; margin-top: 2px }
+.bar i { display: block; height: 100%; background: var(--accent) }
+.decide { border-top: 2px solid var(--wire); padding-top: 14px; display: grid; gap: 14px }
+.decide > div { display: grid; gap: 6px; min-width: 0 }
+.decide h3 { font-size: 1.05rem; margin: 0 }
+.table-wrap { overflow-x: auto }
+.table-wrap table { width: 100%; border-collapse: collapse; font-size: .9rem }
+.table-wrap th, .table-wrap td { padding: 7px 6px; border-bottom: 1px solid var(--wire); text-align: center; font-variant-numeric: tabular-nums }
+.table-wrap th:first-child, .table-wrap td:first-child { text-align: left; word-break: keep-all }
+.table-wrap tr.mine td { font-weight: 700; color: var(--accent) }
+.top-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px }
+select { width: 100%; background: var(--card); border: 2px solid var(--wire); border-radius: 10px; padding: 12px 14px; min-height: 52px; font: inherit; color: inherit }
+.two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px }
+.jobs.all { grid-template-columns: repeat(4, minmax(0, 1fr)) }
+.info-box { background: var(--card); border-radius: 12px; padding: 12px 14px; display: grid; gap: 6px }
+.tags { display: flex; flex-wrap: wrap; gap: 6px; list-style: none; margin: 0; padding: 0 }
+.tags li { background: var(--panel); border-radius: 6px; padding: 3px 9px; font-size: .88rem }
+.plan { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px }
+.plan > div { display: grid; gap: 6px; min-width: 0; align-content: start }
+.total { font-size: 1.9rem; font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; line-height: 1.2 }
+.study { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px }
+.study label { display: flex; align-items: center; gap: 10px; min-height: 52px; background: var(--card); border-radius: 10px; padding: 8px 14px; cursor: pointer }
+.study input { width: 24px; height: 24px; flex: none; accent-color: var(--accent) }
+.study span { margin-left: auto; color: var(--muted); font-variant-numeric: tabular-nums }
+.done-note { font-weight: 700; color: var(--accent) }
+.actions { display: flex; flex-wrap: wrap; gap: 10px }
+.note { color: var(--muted); font-size: .84rem }
+
+.nav { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 10px }
+.nav button { min-height: 60px; border-radius: 12px; font-weight: 700; font-size: 1.05rem }
+.nav .back { background: transparent; border: 2px solid var(--accent); color: var(--accent) }
+.nav .next, .main-btn { background: var(--accent); border: 2px solid var(--accent); color: var(--on-accent) }
+.main-btn { min-height: 56px; border-radius: 12px; padding: 8px 18px; font-weight: 700 }
+.line-btn { min-height: 56px; border-radius: 12px; padding: 8px 18px; font-weight: 700; background: transparent; border: 2px solid var(--accent); color: var(--accent) }
+
+/* 책 형태: 남색 책상 위 크림색 종이, 왼쪽 책등, 오른쪽 아래 종이 묶음 */
+.app { position: relative; background: var(--bg); padding: 26px 30px 34px; border-left: 12px solid var(--spine); border-radius: 3px 10px 10px 3px;
+  box-shadow: 3px 3px 0 var(--edge), 6px 6px 0 var(--wire), 0 16px 36px rgba(0, 0, 0, .35) }
+h1, h2, .brand, #stepText, .verdict strong, .hub strong { font-family: var(--serif) }
+.top { flex-wrap: wrap }
+.brand { color: var(--ink); white-space: nowrap }
+.track { height: 6px; border-radius: 3px }
+.track i, .bar i { background: var(--bright) }
+.cover-head { display: grid; gap: 12px; background: #14233c; color: #f7f3ea; padding: 28px; border-radius: 6px; border-bottom: 5px solid #d8b45a }
+.cover-head .help { color: #e4dcc8 }
+.card { border: 1px solid var(--wire); border-top: 5px solid var(--bright); border-radius: 4px; padding: 24px }
+.card .who, .card h3, .card dt, .verdict strong, .total, .done-note, .table-wrap tr.mine td { color: var(--gold) }
+.card h2.main { font-size: 1.55rem }
+
+/* 넘어가는 장: 내용은 돌리지 않고 이전 화면의 복사본만 돌려 연결선 위치를 지킨다 */
+.flow-page.leaf { position: absolute; inset: 0; z-index: 5; background: var(--bg); overflow: hidden; pointer-events: none; backface-visibility: hidden; animation: .6s ease-in-out forwards }
+.leaf::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(11, 21, 38, .3)); animation: shade .6s ease-in forwards }
+.leaf.fwd { transform-origin: left center; animation-name: turn-fwd }
+.leaf.rev { transform-origin: right center; animation-name: turn-rev }
+@keyframes turn-fwd { from { transform: perspective(1800px) rotateY(0) } to { transform: perspective(1800px) rotateY(-180deg) } }
+@keyframes turn-rev { from { transform: perspective(1800px) rotateY(0) } to { transform: perspective(1800px) rotateY(180deg) } }
+@keyframes shade { from { opacity: 0 } to { opacity: 1 } }
+
+/* 펼친 책: 왼쪽 1쪽은 고정 지도, 오른쪽 2쪽은 10단계 진행 */
+.app { max-width: 1360px; padding: 0; gap: 0; grid-template-columns: minmax(0, 1.08fr) minmax(0, 1fr) }
+.top, #installMsg, .page-tabs { grid-column: 1 / -1 }
+.top { padding: 14px 30px; border-bottom: 1px solid var(--wire) }
+#installMsg { padding: 10px 30px 0 }
+.page-tabs { display: none }
+.page { min-width: 0; padding: 24px 30px 34px; display: grid; gap: 18px; align-content: start }
+.map-page { position: sticky; top: 8px; align-self: start; max-height: calc(100vh - 16px); overflow-y: auto; border-right: 1px solid var(--wire);
+  background: linear-gradient(90deg, transparent 93%, rgba(11, 21, 38, .1)) }
+.flow-page { position: relative; background: linear-gradient(270deg, transparent 95%, rgba(11, 21, 38, .08)) }
+.map-page h1 { font-size: 1.35rem }
+.map-page { gap: 12px; padding-top: 16px; padding-bottom: 16px }
+.map-page .main-btn, .map-page .line-btn { min-height: 46px; padding: 4px 14px }
+#stage { gap: 22px }
+#mapInfo { grid-template-columns: auto auto minmax(0, 1fr); align-items: center; gap: 12px }
+#mapInfo .note { grid-column: 1 / -1 }
+@media (max-width: 1199px) {
+  .page, .top { padding-left: 18px; padding-right: 18px }
+  .jobs.all { grid-template-columns: repeat(3, minmax(0, 1fr)) }
+}
+@media (max-width: 899px) {
+  .app { grid-template-columns: minmax(0, 1fr) }
+  .page-tabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding: 12px 30px 0 }
+  .app.both .page-tabs { display: none }
+  .map-page { position: static; max-height: none; border-right: 0; background: none }
+  .app:not(.both)[data-page="flow"] .map-page, .app:not(.both)[data-page="map"] .flow-page { display: none }
+}
+
+@media (max-width: 620px) {
+  .app { border-left-width: 7px }
+  .top, .page { padding-left: 14px; padding-right: 14px }
+  .page-tabs { padding-left: 14px; padding-right: 14px }
+  .cover-head { padding: 20px 16px }
+  .card { padding: 16px }
+  h1 { font-size: 1.5rem }
+  .jobs.all { grid-template-columns: repeat(2, minmax(0, 1fr)) }
+  .choices { grid-template-columns: minmax(0, 1fr) }
+  .stage-row { grid-template-columns: minmax(0, 1fr) 62px minmax(0, 1fr) }
+  .side span { font-size: .84rem }
+  .job b { font-size: .82rem }
+  .skill b { font-size: .76rem }
+}
+@media (prefers-reduced-motion: reduce) { .skill i, .track i { transition: none } .hub.pulse { animation: none } }
+</style>
+
+</head><body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="logoMark" viewBox="0 0 150 150">
+  <rect width="150" height="150" rx="34" fill="#e6f0e3"/>
+  <path fill-rule="evenodd" fill="#17261c" d="M16 72 L33 24 H47 L64 72 H51 L48 63 H32 L29 72 Z M35.500 52 H44.500 L40 38 Z"/>
+  <rect x="70" y="24" width="13" height="48" fill="#17261c"/>
+  <circle cx="30" cy="122" r="10" fill="#1b8047"/><circle cx="58" cy="108" r="10" fill="#1b8047"/><circle cx="84" cy="88" r="10" fill="#1b8047"/>
+  <path d="M100 72 L122 48" fill="none" stroke="#cf3c22" stroke-width="10" stroke-linecap="round"/>
+  <path d="M100 40 L130 40 L130 70" fill="none" stroke="#cf3c22" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+</symbol></svg>
+<main class="app" data-page="flow">
+  <div class="top">
+    <span class="brand"><svg class="logo" aria-hidden="true"><use href="#logoMark"></use></svg>AI다음행보 <small class="ver">v1.7</small></span>
+    <div class="top-actions">
+      <button class="small-btn" id="installBtn" type="button" hidden>PC 설치 파일 받기</button>
+      <button class="small-btn" id="mapBtn" type="button" hidden>전체 지도</button>
+      <button class="small-btn" id="fontBtn" type="button">글자 크게</button>
+    </div>
+  </div>
+  <p class="help" id="installMsg" aria-live="polite" hidden></p>
+  <div class="page-tabs">
+    <button class="small-btn" id="pageMap" type="button" aria-pressed="false">1쪽 지도</button>
+    <button class="small-btn" id="pageFlow" type="button" aria-pressed="true">2쪽 진단</button>
+  </div>
+  <aside class="page map-page">
+    <section class="step" id="mapHead">
+      <h1>역량과 직업 후보의 연결</h1>
+      <p class="help">직업 후보를 누르면 경험이 AI를 거쳐 필요한 역량으로 쌓입니다. 역량 칸을 누르면 이어지는 직업이 보입니다.</p>
+      <div class="actions">
+        <button class="main-btn" id="mapPlay" type="button">1~7 차례로 쌓기</button>
+        <button class="line-btn" id="mapReset" type="button">지도 비우기</button>
+        <button class="line-btn" id="mapClose" type="button" hidden>내 지도로</button>
+      </div>
+    </section>
+    <div id="stage">
+      <svg id="wires" aria-hidden="true"></svg>
+      <div class="jobs" id="jobs"></div>
+      <div class="gate plus" id="plusGate"></div>
+      <div class="hub" id="hub"><strong>경험 × AI</strong><span id="hubText"></span></div>
+      <div class="gate minus" id="minusGate"></div>
+      <div class="skills" id="skills"></div>
+    </div>
+    <div class="info-box" id="info" aria-live="polite" hidden></div>
+    <section class="step" id="mapInfo">
+      <h2>쌓인 디지털 경험자산</h2>
+      <div class="total" id="mapTotal"></div>
+      <p class="help" id="mapTop"></p>
+      <p class="note">역량과 직업의 연결은 기획팀 제안으로 시범교육 후 조정합니다.</p>
+    </section>
+  </aside>
+  <div class="page flow-page">
+  <div class="progress" id="progress"><span id="stepText"></span><div class="track"><i id="stepBar"></i></div></div>
+
+  <section class="step" data-step="0">
+    <div class="cover-head">
+      <svg class="logo large" role="img" aria-label="AI다음행보 아이콘"><use href="#logoMark"></use></svg>
+      <h1>30년 경험, AI 시대에 어떻게 쓸 수 있을까요?</h1>
+      <p class="help">몇 가지 질문에 답하면 내 경력에 맞는 다음 역할, 배울 것, 돌발 상황 대비책을 카드로 만들어 드립니다.</p>
+    </div>
+    <label class="field">이름 또는 별칭<input type="text" id="name" maxlength="20" autocomplete="off" placeholder="예: 홍길동"></label>
+    <div class="two">
+      <label class="field">연령대 (선택)<select id="age"><option value="">응답하지 않음</option><option>40대</option><option>50대</option><option>60대</option><option>70대 이상</option></select></label>
+      <label class="field">성별 (선택)<select id="sex"><option value="">응답하지 않음</option><option>남성</option><option>여성</option></select></label>
+    </div>
+    <p class="note">연령대와 성별은 직업 추천과 판단에 쓰이지 않습니다.</p>
+    <div><p><b>지금 상황</b></p></div>
+    <div class="choices" id="statusChoices">
+      <button class="opt" type="button" data-status="c"><b>현재 일하고 있어요</b><small>회사나 사업장에서 재직 중</small></button>
+      <button class="opt" type="button" data-status="r"><b>퇴직 후 활동해요</b><small>새 일이나 활동을 준비 중</small></button>
+    </div>
+    <p class="note">입력한 내용은 이 브라우저에만 저장됩니다. 실명 대신 별칭을 써도 되며, 회사명과 고객정보는 넣지 마세요.</p>
+    <div class="actions"><button class="line-btn" id="sample" type="button">예시 결과 먼저 보기</button></div>
+  </section>
+
+  <section class="step" data-step="1">
+    <h1>어떤 일을 주로 해 오셨나요?</h1>
+    <p class="help">가장 오래 한 일을 먼저 누르세요. 강점이 되는 다른 일이 있으면 한 가지 더 누르세요.</p>
+    <div class="choices" id="groups"></div>
+    <div class="plan" id="groupText" aria-live="polite"></div>
+  </section>
+
+  <section class="step" data-step="2">
+    <h1>가장 기억에 남는 경험은 무엇인가요?</h1>
+    <label class="field">내가 해결한 일을 한두 문장으로 적어 주세요<textarea id="exp" maxlength="300" placeholder="예: 반복되던 하자 원인을 찾아 점검 순서를 바꿨습니다."></textarea></label>
+    <p class="warn">회사명, 사람 이름, 고객정보는 빼고 적어 주세요.</p>
+    <p><b>이 경험은 어디에 가깝나요?</b></p>
+    <div class="choices" id="expTypes"></div>
+    <p id="expOut" class="help"></p>
+  </section>
+
+  <section class="step" data-step="3">
+    <h1>나는 어떻게 일하는 편인가요?</h1>
+    <p class="help">단계마다 나와 더 가까운 쪽을 누르세요. 모르면 넘어가도 됩니다. MBTI를 알면 그대로 고르셔도 좋습니다.</p>
+    <div class="step" id="stages"></div>
+    <div class="verdict" id="flowResult" aria-live="polite"></div>
+    <p class="note">MBTI를 응용한 자체 모델이며 공식 검사가 아닙니다. 선택은 앞으로 해 볼 일의 순위와 조언에 반영되고, 직업을 판정하지는 않습니다.</p>
+  </section>
+
+  <section class="step" data-step="4">
+    <h1>앞으로 해 볼 일을 하나 고르세요</h1>
+    <p class="help">내 경력과 일하는 방식으로 고른 3가지입니다. 누르면 경험이 AI를 거쳐 배울 것으로 흘러갑니다. 아래 칸을 누르면 설명이 나옵니다.</p>
+    <p class="help" id="movedNote"></p>
+    <p class="note">직업 후보는 탐색용 가설이며 취업이나 소득을 보장하지 않습니다.</p>
+  </section>
+
+  <section class="step" data-step="5">
+    <h1>지금 내 실력은 어느 정도인가요?</h1>
+    <p class="help">각 문장이 지금 내 모습과 얼마나 맞는지 고르세요. 부족한 것에 시간을 더 배정해 드립니다.</p>
+    <ul class="rate" id="rate"></ul>
+  </section>
+
+  <section class="step" data-step="6">
+    <h1 id="workTitle"></h1>
+    <p class="help">해당하는 항목을 모두 체크하세요.</p>
+    <ul class="conds" id="conds"></ul>
+    <div class="verdict" id="verdict" aria-live="polite"></div>
+  </section>
+
+  <section class="step" data-step="7">
+    <h1>도움과 돌발 상황을 넣어 보세요</h1>
+    <p class="help">지도의 위쪽은 도움이 되는 일, 아래쪽은 돌발 상황입니다. 누를 때마다 결과가 달라집니다. 없으면 그냥 넘어가도 됩니다.</p>
+  </section>
+
+  <div class="verdict" id="liveVerdict" aria-live="polite" hidden></div>
+
+  <section class="step" data-step="8">
+    <h1>내 미래 역할을 다듬어 보세요</h1>
+    <p class="help">자동으로 채운 초안입니다. 내 말로 고쳐 쓰면 더 좋습니다.</p>
+    <div class="step" id="fiveFields"></div>
+  </section>
+
+  <section class="step" data-step="9">
+    <h1 id="cardTitle"></h1>
+    <div class="card" id="card"></div>
+    <h2>학습 진행 체크</h2>
+    <p class="help">공부를 마친 역량을 체크하세요. 모두 체크하면 정의가 완성됩니다.</p>
+    <ul class="study" id="study"></ul>
+    <label class="field">AI에게 줄 나의 지침문<textarea id="prompt" readonly></textarea></label>
+    <div class="actions">
+      <button class="main-btn" id="copyPrompt" type="button">지침문 복사</button>
+      <button class="line-btn" id="copyCard" type="button">결과 복사</button>
+      <button class="line-btn" id="cardMap" type="button">전체 지도 보기</button>
+      <button class="line-btn" id="restart" type="button">처음부터 다시</button>
+    </div>
+    <p id="copyMsg" class="help" aria-live="polite"></p>
+    <p class="note">학습을 마쳤다고 가정한 목표 모델이며, 취업이나 소득을 보장하지 않습니다. 돌발 상황은 미래 예측이 아니라 대비 연습입니다. 개인 학습 계획용이며 인사 평가 자료가 아닙니다. 추천 기준은 시범교육 전 초안입니다.</p>
+  </section>
+
+  <p class="warn" id="navMsg" aria-live="polite"></p>
+  <div class="nav" id="nav">
+    <button class="back" id="back" type="button">이전</button>
+    <button class="next" id="next" type="button">다음</button>
+  </div>
+  </div>
+</main>
+
+<script id="installerZip" type="text/plain"></script>
+<script>
+const SKILLS = ['AI 기초 이해', '질문 설계', '경험 구조화', '자료 분석', '문서 자동화', '도구 제작', '결과 검증', '활용·공유'];
+const SKILL_D = ['나를 이해시켜 내 판단을 돕는 조력자로 만드는 방법', 'AI와 질문을 이어 가며 완성도를 높이는 방법', '내 경험을 어떤 성과물로 만들지 고민하고 해 보는 것', '관점은 내가 정하고 정리와 집계는 AI에 맡기는 것',
+  '문서 전체를 주고 의도를 말해 새 문서를 만드는 것', '나만의 프로그램과 앱을 말로 설명해 만드는 것', '편리한가, 정확한가, 실수가 없는가, 빠른가로 발전시키는 것', '따로 만든 앱을 하나의 프로세스로 결합해 나누는 것'];
+const SKILL_Q = ['챗GPT 같은 AI에게 내 상황을 설명하고 답을 받아 본 적이 있다.', 'AI의 답이 부족하면 조건을 더해 다시 질문할 수 있다.', '내 경험을 상황, 판단, 행동, 결과로 나눠 설명할 수 있다.',
+  '점검 기록이나 고장 이력에서 반복되는 문제를 찾아낼 수 있다.', '기존 보고서 양식을 AI에 주고 새 보고서 초안을 만들 수 있다.', '내가 쓸 체크리스트나 계산표를 직접 만들어 본 적이 있다.',
+  'AI가 만든 내용을 원자료와 대조해 틀린 부분을 찾을 수 있다.', '내가 만든 자료를 동료가 쓰도록 설명하고 고쳐 줄 수 있다.'];
+// 화면 번호 1~5 순서. 내부 점수는 매우 그렇다 5점, 전혀 아니다 1점
+const SCALE = ['매우 그렇다', '그렇다', '보통이다', '아니다', '전혀 아니다'];
+const JOBS = [
+  { n: 'AI 업무개선 전문가', w: '조직의 반복업무를 AI로 개선', s: [0, 1, 4, 6] }, { n: '산업별 AI 지식관리 전문가', w: '현장 노하우를 지식베이스로 구축', s: [2, 3, 6, 7] },
+  { n: 'AI 활용 전문강사', w: '중장년·현장 인력 대상 AI 교육', s: [0, 1, 7] }, { n: '기술문서 디지털화 전문가', w: '매뉴얼·기술자료 정리와 자동화', s: [2, 4, 6] },
+  { n: '스마트시설 운영 개선 전문가', w: '시설 운영 기록 분석과 개선', s: [3, 5, 6] }, { n: 'AI 전문콘텐츠 제작자', w: '전자책·강의·영상 등 전문 콘텐츠', s: [1, 2, 7] },
+  { n: '중소기업 AI 도입 프로젝트 관리자', w: '중소기업 AI 도입 기획과 관리', s: [0, 3, 5, 7] }
+];
+const MAX = SKILLS.map((_, i) => JOBS.filter(j => j.s.includes(i)).length);
+const TOTAL = MAX.reduce((a, b) => a + b, 0);
+// 기획안 62쪽 연결표와 맞는지 확인
+console.assert(TOTAL === 24 && MAX.join() === '3,3,3,3,2,2,4,4', 'skill links differ from 연결표');
+const GROUPS = [
+  { n: '현장시공직', h: '시공, 하자 대응, 안전, 현장 판단', a: ['시공 체크리스트', '하자 사례집', '사진 작업 매뉴얼'], j: [3, 4, 2], s: [2, 4, 6], w: '현장 사진의 얼굴과 장소명은 가리고, 안전 판단은 사람이 합니다.' },
+  { n: '기술직', h: '설계, 계산, 측정, 진단', a: ['판단기준표', '계산 도구', '진단보고서 양식'], j: [4, 3, 1], s: [3, 5, 6], w: '도면과 내부 측정값은 AI에 입력하지 않습니다.' },
+  { n: '영업직', h: '고객 문제 파악, 견적, 제안, 협상', a: ['제안서 양식', '고객 FAQ', '상담 스크립트'], j: [0, 5, 6], s: [1, 4, 7], w: '고객정보, 단가, 계약 조건은 AI에 입력하지 않습니다.' },
+  { n: '관리직', h: '일정, 예산, 인력, 계약, 보고', a: ['보고서 자동화', '업무 매뉴얼', '의사결정 기준표'], j: [0, 1, 6], s: [3, 4, 7], w: '인사정보, 예산, 내부 보고서는 AI에 입력하지 않습니다.' }
+];
+// 두 직군을 결합했을 때의 후보. 키는 GROUPS 번호 쌍이며 시범교육 전 초안
+const PAIRS = { '0-1': [4, 3, 2], '0-2': [0, 5, 6], '0-3': [1, 4, 6], '1-2': [6, 5, 3], '1-3': [1, 4, 6], '2-3': [0, 6, 5] };
+const EXP = [
+  { n: '절차형', h: '순서대로 하는 일', o: ['업무 매뉴얼', '점검 체크리스트'], j: [3, 0] },
+  { n: '판단형', h: '상황을 보고 결정하는 일', o: ['판단기준표', '의사결정 흐름도'], j: [1, 4] },
+  { n: '사례형', h: '겪고 해결한 일', o: ['현장 사례집', 'FAQ'], j: [1, 5] },
+  { n: '전수형', h: '남에게 가르치던 일', o: ['강의안', '교육자료'], j: [2, 5] },
+  { n: '문답형', h: '자주 질문받던 일', o: ['전문지식 상담봇', 'Q&A 노트'], j: [1, 2] }
+];
+const STAGES = [
+  { n: '계획', o: [
+    { k: 'E', t: '사람들과 말하며 계획', d: '동료와 이야기하며 방향을 잡으세요.', f: '혼자 정리할 시간도 30분 확보하세요.', x: '다른 사람 의견만 듣고 결정하기' },
+    { k: 'I', t: '혼자 정리한 뒤 공유', d: '혼자 사례를 정리한 뒤 공유하세요.', f: '정리한 내용을 동료 1명에게 말로 설명해 보세요.', x: '혼자 정리만 하고 공유를 미루기' }] },
+  { n: '판단', o: [
+    { k: 'S', t: '현장 사실과 사례로 판단', d: '현장 사실과 사례로 판단하세요.', f: '전체 구조도 1장을 그려 보세요.', x: '눈앞의 사례만 보고 전체를 놓치기' },
+    { k: 'N', t: '전체 구조와 가능성으로 판단', d: '전체 구조를 그린 뒤 판단하세요.', f: '현장 사례 3건으로 확인하세요.', x: '현장 확인 없이 구상만 키우기' }] },
+  { n: '의심', o: [
+    { k: 'T', t: '기준과 수치로 의심', d: '결과는 기준표와 수치로 의심하세요.', f: '실제 사용자 1명의 반응도 확인하세요.', x: '수치만 보고 사용자 불편을 넘기기' },
+    { k: 'F', t: '사용자 반응으로 의심', d: '결과는 사용자 반응으로 의심하세요.', f: '수치와 원자료도 대조하세요.', x: '좋은 반응만 믿고 원자료 확인을 생략하기' }] },
+  { n: '실행', o: [
+    { k: 'J', t: '계획표대로 실행', d: '주간 계획표대로 실행하세요.', f: '계획을 고칠 시점도 미리 정해 두세요.', x: '계획에 맞추느라 문제를 고치지 않기' },
+    { k: 'P', t: '작게 실험하며 수정', d: '작은 실험부터 시작해 고쳐 가세요.', f: '실험 기록과 마감일을 남기세요.', x: '실험만 반복하고 기록을 남기지 않기' }] }
+];
+// 성향별로 잘 맞는 직업 번호. 후보 3개의 순위만 조정하며 시범교육 전 초안
+const FIT = { E: [2, 6, 0], I: [3, 1], S: [4, 3], N: [6, 5, 1], T: [4, 0], F: [2, 5], J: [3, 1, 6], P: [0, 5] };
+const CONDITIONS = [
+  { c: '회사가 AI 사용을 허용한다', r: '고객이나 현장이 AI 활용을 받아들인다', a: 'AI 사용 기준부터 확인하세요.' },
+  { c: '매주 반복되는 업무가 있다', r: '반복해서 맡을 수 있는 일이 있다', a: '반복되는 일 1건을 먼저 고르세요.' },
+  { c: '비식별화할 수 있는 자료가 있다', r: '이름을 지우고 쓸 수 있는 자료가 있다', a: '이름과 고객정보를 지운 연습 자료를 준비하세요.' },
+  { c: '결과를 확인해 줄 상사나 동료가 있다', r: '결과를 확인해 줄 사용자가 있다', a: '결과를 봐 줄 사람 1명을 정하세요.' },
+  { c: '시간 절감이나 오류 감소를 측정할 수 있다', r: '개선 효과를 측정할 수 있다', a: '전후로 잴 지표 1개를 정하세요.' },
+  { c: '주 3시간 이상 실습할 수 있다', r: '주 3시간 이상 실습할 수 있다', a: '주간 실습 시간을 먼저 확보하세요.' }
+];
+const PLUS = [
+  { n: '담당자의 시범 적용 지원', p: '시범 적용 승인을 먼저 요청하세요.' },
+  { n: '정리된 자료 보유', p: '정리된 자료로 첫 결과물을 바로 시작하세요.' },
+  { n: '함께할 동료 확보', p: '동료와 함께 검증하고 공유하세요.' }
+];
+const MINUS = [
+  { n: '보안 규정 강화', p: '가상 자료로 연습하고 비식별화 기준을 제안으로 준비하세요.' },
+  { n: '담당자 교체', p: '성과 기록 1쪽을 만들어 새 담당자에게 다시 승인을 요청하세요.' },
+  { n: 'AI 결과 오류 발생', p: '원자료 대조표를 먼저 만들고 결과 검증 시간을 늘리세요.' },
+  { n: '예산 삭감', p: '유료 도구를 빼고 무료 도구와 문서 양식으로 범위를 줄이세요.' },
+  { n: '업무 시간 부족', p: '12시간 단기 계획으로 줄이고 목표 1개만 유지하세요.' }
+];
+const CUT = { 0: [3, 4], 1: [7], 3: [5] }; // 돌발 상황별로 끊겨 보일 역량 번호
+const PHRASE = ['AI와 함께 판단을 세워서', '좋은 질문을 설계해서', '경험을 구조화해서', '자료를 분석해서', '문서를 자동화해서', '나만의 도구를 만들어', '결과를 검증해서', '성과를 공유해서'];
+const PLACE = ['시공현장', '기술업무', '영업현장', '관리업무'];
+const TYPE = ['현장형', '기술형', '영업형', '관리형'];
+const ROLE = ['AI 업무개선자', 'AI 지식관리자', 'AI 활용 강사', '기술문서 디지털화 담당자', '운영 개선 담당자', 'AI 콘텐츠 제작자', 'AI 도입 관리자'];
+const AIM = ['반복업무의 시간과 오류를 줄이기', '흩어진 현장 노하우를 조직이 쓰는 지식으로 전환', '동료와 후배가 AI를 업무에 쓰도록 돕기', '기술자료를 찾기 쉽고 다시 쓰는 자료로 전환',
+  '운영 기록을 개선 판단에 활용', '내 전문지식을 외부인이 쓰는 콘텐츠로 제작', '중소기업의 AI 도입을 작은 성과로 연결'];
+const AVOID_ALL = ['검증 없는 AI 수치 사용', '승인 없는 자료 입력', '처음부터 큰 시스템 만들기'];
+const LEVELS = [
+  { t: '지금은 개인 학습', d: '가상 자료로 연습하면서 적용 제안을 준비하세요.' },
+  { t: '조건 보완 후 적용', d: '부족한 조건부터 해결한 뒤 시범 적용하세요.' },
+  { t: '바로 적용', d: '이번 주 업무 1건에 시범 적용하세요.' }
+];
+const FIVE = [['role', '역할', '앞으로 내가 맡을 역할'], ['context', '맥락', '내 경력과 활동 무대'], ['aim', '목표', '내가 만들 변화'], ['form', '형식', '내가 내놓을 결과물'], ['rule', '조건', '내 일의 원칙과 한계']];
+const LAST = 9, HOURS = 24, KEY = 'experience-ai-map-v1';
+
+const blank = () => ({ step: 0, name: '', age: '', sex: '', status: 'c', groups: [], exp: '', expType: null, sides: [null, null, null, null], choice: null, self: {}, checks: [], plus: [], minus: [], model: {}, done: [] });
+let S = blank();
+const $ = id => document.getElementById(id);
+const esc = t => String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const has = (list, v) => list.includes(v);
+const toggle = (list, v) => list.includes(v) ? list.filter(x => x !== v) : [...list, v];
+// 받침 유무로 조사를 고른다 (예: 전문가가, 팀장이 / 관리자를, 팀장을)
+const josa = (w, pair) => { const c = String(w).trim().slice(-1).charCodeAt(0); return pair[c >= 0xAC00 && c <= 0xD7A3 && (c - 0xAC00) % 28 ? 0 : 1]; };
+
+const recommended = (list = S.groups) => list.length === 2 ? PAIRS[[...list].sort().join('-')] : list.length ? GROUPS[list[0]].j : [];
+
+// 기본 순위 점수 6·4·2에 경험 유형과 성향 일치 1점씩 더한다. 후보 3개 자체는 바뀌지 않는다.
+const fit = j => S.sides.reduce((s, n, i) => s + (n !== null && FIT[STAGES[i].o[n].k].includes(j) ? 1 : 0), 0)
+  + (S.expType !== null && EXP[S.expType].j.includes(j) ? 1 : 0);
+function ranked() {
+  return recommended().map((j, r) => ({ j, r, v: (3 - r) * 2 + fit(j) })).sort((a, b) => b.v - a.v || a.r - b.r).map(x => x.j);
+}
+
+// 가중치를 5% 단위로 나눠 합계 100을 맞춘다.
+function spread(weights) {
+  const sum = weights.reduce((a, b) => a + b, 0), units = weights.map(w => w * 20 / sum), floors = units.map(Math.floor);
+  const rest = 20 - floors.reduce((a, b) => a + b, 0);
+  units.map((u, k) => [u - floors[k], k]).sort((a, b) => b[0] - a[0] || a[1] - b[1]).slice(0, rest).forEach(([, k]) => floors[k]++);
+  return floors.map((u, k) => ({ k, pct: u * 5 }));
+}
+
+// 점수: 직업 필요 역량 2, 주 직군 우선 역량 2, 강점 직군 우선 역량 1
+function baseRows(job, list = S.groups) {
+  const score = SKILLS.map((_, k) => (JOBS[job].s.includes(k) ? 2 : 0)
+    + (list[0] !== undefined && GROUPS[list[0]].s.includes(k) ? 2 : 0)
+    + (list[1] !== undefined && GROUPS[list[1]].s.includes(k) ? 1 : 0));
+  if (has(S.plus, 1)) score[2] = Math.max(0, score[2] - 1);
+  if (has(S.plus, 2)) score[7] = Math.max(0, score[7] - 1);
+  if (has(S.minus, 2)) score[6] += 2;
+  if (has(S.minus, 3)) score[5] = Math.max(0, score[5] - 1);
+  return spread(score);
+}
+
+// 자가진단이 낮을수록 시간을 더 배정한다. 미응답은 3점으로 본다.
+function personalRows(job = S.choice, list = S.groups, self = S.self) {
+  const base = baseRows(job, list), w = base.map(r => r.pct * (5 - (self[r.k] ?? 3)));
+  const rows = w.some(Boolean) ? spread(w) : base;
+  return rows.filter(r => r.pct).sort((a, b) => b.pct - a.pct || a.k - b.k);
+}
+
+const baseLevel = (met, allowed) => !allowed || met < 3 ? 0 : met >= 5 ? 2 : 1;
+// 지원은 한 단계 올리고 담당자 교체는 한 단계 내린다. 보안 규정 강화는 개인 학습으로 고정한다.
+function finalLevel(minus = S.minus) {
+  const allowed = has(S.checks, 0);
+  if (has(minus, 0)) return 0;
+  return Math.max(0, Math.min(2, baseLevel(S.checks.length, allowed) + (has(S.plus, 0) && allowed ? 1 : 0) - (has(minus, 1) ? 1 : 0)));
+}
+
+const identity = rows => `${PHRASE[rows[0].k]} ${PLACE[S.groups[0]]}에 AI를 활용하는 ${S.groups[1] !== undefined ? TYPE[S.groups[1]] + ' ' : ''}능력자`;
+
+function autoModel() {
+  const main = GROUPS[S.groups[0]], strong = S.groups[1] !== undefined ? GROUPS[S.groups[1]] : null;
+  const form = [...(S.expType !== null ? EXP[S.expType].o : main.a.slice(0, 2)), strong ? strong.a[0] : main.a[2]];
+  return {
+    role: `${PLACE[S.groups[0]]} ${ROLE[S.choice]}`,
+    context: `${main.n} 경력${strong ? `과 ${strong.n} 강점` : ''}을 활용`,
+    aim: AIM[S.choice], form: form.join(', '),
+    rule: [main, strong].filter(Boolean).map(g => g.w).join(' ')
+  };
+}
+// 지운 칸은 자동 초안을 쓴다 (빈 칸이 카드와 결론에 '' 로 나오지 않게)
+const model = () => { const m = autoModel(); FIVE.forEach(([k]) => { if (S.model[k]?.trim()) m[k] = S.model[k]; }); return m; };
+
+// 후보 비교 점수: 경력 적합 6·4·2, 경험·성향 일치 수, 관련 역량 자가진단 평균
+function compareJobs() {
+  const base = recommended();
+  return ranked().map(j => {
+    const career = (3 - base.indexOf(j)) * 2, match = fit(j);
+    const ready = Math.round(JOBS[j].s.reduce((s, k) => s + (S.self[k] ?? 3), 0) / JOBS[j].s.length);
+    return { j, career, match, ready, total: career + match + ready };
+  });
+}
+
+// 돌발 상황을 하나씩 넣었을 때 판단이 내려가는 항목
+const sensitive = () => MINUS.filter((_, i) => finalLevel([i]) < finalLevel([]));
+
+// 5요소별 규칙형 맞춤 조언
+function adviceList(m) {
+  const first = m.form.split(',')[0].trim();
+  return [
+    `역할: ${S.exp.trim() ? '적어 둔 경험에 대표 사례 2개를 더해 역할의 근거로 삼으세요.' : '대표 경험을 먼저 적어 역할의 근거로 삼으세요.'}`,
+    `맥락: ${S.model.context ? '활동 무대를 내 말로 적었습니다. 내 결과물을 쓸 사람 1명을 정하세요.' : '활동 무대와 쓸 사람을 한 문장으로 좁혀 보세요.'}`,
+    `목표: ${has(S.checks, 4) ? '측정할 수 있으니 시작 전 기록부터 남기세요.' : '작성 시간처럼 전후로 잴 수 있는 지표를 정하세요.'}`,
+    `형식: ${has(S.checks, 2) ? `가진 자료로 '${first}' 1장부터 만드세요.` : `큰 매뉴얼보다 '${first}' 1장부터 작게 시작하세요.`}`,
+    `조건: ${S.status === 'c' ? '회사의 AI 사용 기준을 문서로 확인하세요.' : '고객에게 AI 활용 범위를 미리 설명하세요.'}`
+  ];
+}
+
+// 입력값으로 만드는 5단계 결론: 본질, 전략, 선택, 검증, 실행
+function decisionHtml(m, rows) {
+  const level = finalLevel(), missing = CONDITIONS.filter((_, i) => !has(S.checks, i));
+  const rated = rows.filter(r => S.self[r.k] !== undefined).sort((a, b) => S.self[b.k] - S.self[a.k]);
+  const strength = rated.length && S.self[rated[0].k] >= 4 ? `${GROUPS[S.groups[0]].n} 경험과 ${SKILLS[rated[0].k]}` : `${GROUPS[S.groups[0]].n} 경험`;
+  const firstForm = m.form.split(',')[0].trim();
+  const who = S.name.trim() || '본인';
+  const sens = sensitive(), jobs = compareJobs(), best = [...jobs].sort((a, b) => b.total - a.total)[0];
+  const essence = level === 0
+    ? `지금 가장 큰 문제는 실력보다 적용 조건입니다. ${missing[0]?.a ?? '돌발 상황 대응부터 정리하세요.'}`
+    : `경험은 있지만 '${SKILLS[rows[0].k]}' 준비가 가장 부족합니다.`;
+  return `<div class="decide">
+    <h2>종합평가분석 · AI 시대, 당신의 다음 행보는?</h2>
+    <p><b>${level === 0 ? `먼저 적용 조건을 정리하고, 가상 자료로 '${esc(firstForm)}' 1건을 만들어 보세요.` : `${SKILLS[rows[0].k]}부터 보완하고, 90일 안에 '${esc(firstForm)}' 1건을 완성해 시험하세요.`}</b></p>
+    <div><h3>1. 본질 · 진짜 문제는 무엇인가?</h3><p>${essence}</p>
+      <p class="help">목표를 이루려면 경험이 '${esc(firstForm)}' 같은 결과물로 남아야 합니다.</p></div>
+    <div><h3>2. 전략 · 어디에 집중할 것인가?</h3>
+      <dl><dt>강점</dt><dd>${esc(strength)}</dd><dt>약점</dt><dd>${SKILLS[rows[0].k]} 준비 부족</dd>
+      <dt>기회</dt><dd>${S.plus.length ? S.plus.map(i => PLUS[i].n).join(', ') : esc(m.aim)}</dd>
+      <dt>위협</dt><dd>${S.minus.length ? S.minus.map(i => MINUS[i].n).join(', ') : missing[0]?.a ?? '현재 표시된 위협 없음'}</dd></dl>
+      <p><b>집중할 것:</b> ${rows.slice(0, 2).map(r => SKILLS[r.k]).join(', ')}</p></div>
+    <div><h3>3. 선택 · 어떤 대안이 유리한가?</h3>
+      <div class="table-wrap"><table><thead><tr><th>앞으로 해 볼 일</th><th>경력</th><th>경험·성향</th><th>준비도</th><th>합계</th></tr></thead>
+      <tbody>${jobs.map(x => `<tr class="${x.j === S.choice ? 'mine' : ''}"><td>${JOBS[x.j].n}${x.j === S.choice ? ' (선택)' : ''}</td><td>${x.career}</td><td>${x.match}</td><td>${x.ready}</td><td>${x.total}</td></tr>`).join('')}</tbody></table></div>
+      <p class="help">${best.j === S.choice ? '내가 고른 일이 비교 점수도 가장 높습니다.' : `비교 점수는 '${JOBS[best.j].n}'${josa(JOBS[best.j].n, '이가')} 가장 높습니다. 점수는 참고용이고 선택은 본인이 합니다.`}</p></div>
+    <div><h3>4. 검증 · 근거와 위험은 충분히 확인했는가?</h3>
+      <p><b>확인된 조건:</b> ${S.checks.length} / ${CONDITIONS.length}개</p>
+      <p><b>판단이 흔들리는 돌발 상황:</b> ${sens.length ? sens.map(c => c.n).join(', ') : '현재 판단을 낮추는 항목 없음'}</p>
+      <p class="help">AI가 만든 내용은 원자료와 대조하고, 실제 사용자 1명 이상의 반응을 확인합니다.</p></div>
+    <div><h3>5. 실행 · 누가 언제 무엇을 할 것인가?</h3>
+      <dl><dt>목적</dt><dd>${esc(m.aim)}</dd><dt>목표</dt><dd>90일 안에 '${esc(firstForm)}' 1건 완성</dd>
+      <dt>전략</dt><dd>${SKILLS[rows[0].k]}부터 보완</dd><dt>지표</dt><dd>작성 시간, 수정 횟수, 실제 사용자 수</dd></dl>
+      <div class="table-wrap"><table><thead><tr><th>언제</th><th>누가</th><th>무엇을</th></tr></thead><tbody>
+        <tr><td>30일</td><td>${esc(who)}</td><td>${esc(firstForm)} 초안 완성</td></tr>
+        <tr><td>60일</td><td>${esc(who)}</td><td>사용자 1명 시험, 불편 사항 수정</td></tr>
+        <tr><td>90일</td><td>${esc(who)}</td><td>전후 지표 비교, 다음 범위 결정</td></tr>
+      </tbody></table></div></div>
+  </div>`;
+}
+
+// 규칙 확인: 모든 직군 조합의 후보 수와 비율 합계, 자가진단 예시, 판단 기준
+GROUPS.forEach((_, a) => GROUPS.forEach((_, b) => {
+  const list = a === b ? [a] : [a, b];
+  console.assert(recommended(list).length === 3, 'candidate count', list);
+  recommended(list).forEach(j => console.assert(personalRows(j, list, {}).reduce((s, r) => s + r.pct, 0) === 100, 'ratio sum', list, j));
+}));
+console.assert(personalRows(1, [0, 3], { 2: 4, 6: 2, 3: 2, 4: 4, 7: 3 }).map(r => r.pct).join() === '35,30,15,10,10', 'self ratio');
+console.assert(baseLevel(5, true) === 2 && baseLevel(3, true) === 1 && baseLevel(2, true) === 0 && baseLevel(6, false) === 0, 'level rule');
+
+// 화면 구성
+$('groups').innerHTML = GROUPS.map((g, i) => `<button class="opt" type="button" data-group="${i}" aria-pressed="false"><b>${g.n}</b><small>${g.h}</small></button>`).join('');
+$('expTypes').innerHTML = EXP.map((e, i) => `<button class="opt" type="button" data-exp="${i}" aria-pressed="false"><b>${e.n}</b><small>${e.h}</small></button>`).join('');
+$('stages').innerHTML = STAGES.map((s, i) => {
+  const side = (o, n, cls) => `<button class="side ${cls}" type="button" data-stage="${i}" data-side="${n}" aria-pressed="false"><b>${o.k}</b><span>${o.t}</span></button>`;
+  return `<div class="stage-row">${side(s.o[0], 0, 'left')}<div class="stage-core"><small>${i + 1}단계</small><b>${s.n}</b></div>${side(s.o[1], 1, 'right')}</div>`;
+}).join('');
+$('skills').innerHTML = SKILLS.map((s, i) => `<button class="skill" id="skill${i}" type="button" aria-pressed="false"><i></i><b>${s}</b><em></em></button>`).join('');
+$('plusGate').innerHTML = '<b>도움이 되는 일</b>' + PLUS.map((c, i) => `<button class="chip" type="button" data-plus="${i}" aria-pressed="false">${c.n}</button>`).join('');
+$('minusGate').innerHTML = '<b>돌발 상황</b>' + MINUS.map((c, i) => `<button class="chip" type="button" data-minus="${i}" aria-pressed="false">${c.n}</button>`).join('')
+  + '<button class="chip draw" id="draw" type="button">돌발 카드 뽑기</button>';
+$('conds').innerHTML = CONDITIONS.map((_, i) => `<li><label for="cond${i}"><input type="checkbox" id="cond${i}" data-cond="${i}"><span id="condText${i}"></span></label></li>`).join('');
+$('fiveFields').innerHTML = FIVE.map(([k, n, h]) => `<label class="field">${n} · ${h}<textarea id="five-${k}" data-five="${k}" maxlength="200"></textarea></label>`).join('');
+
+const stage = $('stage'), wires = $('wires'), hub = $('hub'), NS = 'http://www.w3.org/2000/svg';
+const calm = matchMedia('(prefers-reduced-motion: reduce)');
+let jobWire = {}, skillWire = {}, flowing = 0;
+// 전체 지도 상태. 진단 결과와 별개로 7개 직업을 쌓아 본다.
+let full = false, mapRun = 0, mapPlaying = false;
+const picked = new Set(), arrived = SKILLS.map(() => new Set());
+
+function drawWires() {
+  if (stage.hidden) return;
+  const b = stage.getBoundingClientRect(), h = hub.getBoundingClientRect();
+  wires.setAttribute('viewBox', `0 0 ${b.width} ${b.height}`);
+  wires.replaceChildren(); jobWire = {}; skillWire = {};
+  const add = (d, map, k) => { const p = document.createElementNS(NS, 'path'); p.setAttribute('d', d); wires.append(p); map[k] = p; };
+  const slot = (i, n) => h.left - b.left + h.width * (n > 1 ? .15 + .7 * i / (n - 1) : .5);
+  const hubTop = h.top - b.top, hubBottom = h.bottom - b.top;
+  document.querySelectorAll('.job').forEach((e, i, all) => {
+    const r = e.getBoundingClientRect(), x = r.left - b.left + r.width / 2, y = r.bottom - b.top;
+    add(`M${x} ${y}V${y + (hubTop - y) * .4}H${slot(i, all.length)}V${hubTop}`, jobWire, e.dataset.job);
+  });
+  SKILLS.forEach((_, i) => {
+    const r = $('skill' + i).getBoundingClientRect(), x = r.left - b.left + r.width / 2, y = r.top - b.top;
+    add(`M${slot(i, SKILLS.length)} ${hubBottom}V${hubBottom + (Math.min(y, hubBottom + 200) - hubBottom) * .5}H${x}V${y}`, skillWire, i);
+  });
+  paint();
+}
+
+function fly(path) {
+  if (calm.matches || !path) return Promise.resolve();
+  const dot = document.createElementNS(NS, 'circle'), len = path.getTotalLength(), t0 = performance.now(), ms = 520;
+  dot.setAttribute('r', 6); wires.append(dot);
+  return new Promise(done => {
+    const finish = () => { dot.remove(); done(); };
+    const timer = setTimeout(finish, ms + 150); // 창이 가려져 프레임이 멈춰도 다음 단계로 진행한다
+    const step = now => {
+      const t = Math.min((now - t0) / ms, 1), p = path.getPointAtLength(len * t);
+      dot.setAttribute('cx', p.x); dot.setAttribute('cy', p.y);
+      if (t < 1) requestAnimationFrame(step); else { clearTimeout(timer); finish(); }
+    };
+    requestAnimationFrame(step);
+  });
+}
+
+// 지도 표시: 고른 일과 배울 것의 비율을 칸 높이로 보여 준다.
+function paintFull() {
+  wires.classList.remove('boost');
+  document.querySelectorAll('.job').forEach(e => {
+    const on = picked.has(Number(e.dataset.job));
+    e.setAttribute('aria-pressed', on);
+    jobWire[e.dataset.job]?.classList.toggle('on', on);
+  });
+  SKILLS.forEach((_, k) => {
+    const n = arrived[k].size, cell = $('skill' + k);
+    cell.querySelector('i').style.height = n / MAX[k] * 100 + '%';
+    cell.querySelector('em').textContent = `${n} / ${MAX[k]}`;
+    skillWire[k]?.classList.toggle('on', n > 0);
+    skillWire[k]?.classList.remove('cut');
+  });
+  const sum = arrived.reduce((a, s) => a + s.size, 0), top = Math.max(...arrived.map(a => a.size));
+  $('hubText').textContent = `${picked.size}개 직업 · ${sum}개 연결`;
+  $('mapTotal').textContent = `${sum} / ${TOTAL}`;
+  $('mapTop').textContent = sum ? `가장 많이 쌓인 역량: ${SKILLS.filter((_, i) => arrived[i].size === top).join(', ')}` : '아직 쌓인 역량이 없습니다.';
+  $('mapPlay').textContent = mapPlaying ? '멈춤' : '1~7 차례로 쌓기';
+}
+
+async function addMapJob(j) {
+  picked.add(j); paintFull();
+  await fly(jobWire[j]);
+  if (!picked.has(j)) return;
+  hub.classList.remove('pulse'); void hub.offsetWidth; hub.classList.add('pulse');
+  await Promise.all(JOBS[j].s.map(async k => {
+    await fly(skillWire[k]);
+    if (picked.has(j)) { arrived[k].add(j); paintFull(); }
+  }));
+}
+
+function clearMap() { mapRun++; mapPlaying = false; picked.clear(); arrived.forEach(a => a.clear()); paintFull(); }
+
+async function playMap() {
+  if (mapPlaying) { mapRun++; mapPlaying = false; paintFull(); return; }
+  clearMap();
+  const run = mapRun;
+  mapPlaying = true; paintFull();
+  for (let j = 0; j < JOBS.length; j++) {
+    if (run !== mapRun) return;
+    await addMapJob(j);
+    await new Promise(r => setTimeout(r, calm.matches ? 150 : 300));
+  }
+  if (run === mapRun) { mapPlaying = false; paintFull(); }
+}
+
+function showInfo(html) { $('info').innerHTML = html; $('info').hidden = false; }
+
+function paint(filled = true) {
+  if (full) return paintFull();
+  const rows = S.choice !== null ? personalRows() : [], top = rows.length ? rows[0].pct : 1;
+  const cuts = S.minus.flatMap(m => CUT[m] || []);
+  const first = S.groups.flatMap(g => GROUPS[g].s);
+  wires.classList.toggle('boost', S.plus.length > 0);
+  document.querySelectorAll('.job').forEach(e => {
+    const on = Number(e.dataset.job) === S.choice;
+    e.setAttribute('aria-pressed', on);
+    jobWire[e.dataset.job]?.classList.toggle('on', on);
+  });
+  SKILLS.forEach((_, k) => {
+    const r = rows.find(x => x.k === k), cell = $('skill' + k);
+    cell.querySelector('i').style.height = filled && r ? r.pct / top * 100 + '%' : '0';
+    cell.querySelector('em').textContent = filled && r ? `${first.includes(k) ? '먼저 ' : ''}${r.pct}%` : '—';
+    skillWire[k]?.classList.toggle('on', Boolean(filled && r));
+    skillWire[k]?.classList.toggle('cut', cuts.includes(k));
+  });
+  $('hubText').textContent = S.step === 7 ? LEVELS[finalLevel()].t : S.choice !== null ? '배울 것 ' + rows.length + '가지' : '앞으로 해 볼 일을 고르세요';
+}
+
+async function chooseJob(j) {
+  S.choice = j; S.model = {}; S.done = []; save();
+  showInfo(`<b>${JOBS[j].n}</b><p>${JOBS[j].w}</p>`);
+  const run = ++flowing;
+  paint(false);
+  await fly(jobWire[j]);
+  if (run !== flowing) return;
+  hub.classList.remove('pulse'); void hub.offsetWidth; hub.classList.add('pulse');
+  await Promise.all(personalRows().map(r => fly(skillWire[r.k])));
+  if (run === flowing) paint();
+}
+
+function verdictHtml() {
+  const base = LEVELS[baseLevel(S.checks.length, has(S.checks, 0))], v = LEVELS[finalLevel()];
+  const missing = CONDITIONS.filter((_, i) => !has(S.checks, i)).slice(0, 2);
+  return `<strong>${v.t}</strong>${base !== v ? `<p class="help">조건 반영 전 판단: ${base.t}</p>` : ''}<p>${v.d}</p>${missing.length ? `<ul class="plain">${missing.map(c => `<li>${c.a}</li>`).join('')}</ul>` : ''}`;
+}
+
+const pressed = (sel, test) => document.querySelectorAll(sel).forEach(b => b.setAttribute('aria-pressed', test(b)));
+
+const ENTER = {
+  0() {
+    $('name').value = S.name;
+    $('age').value = S.age;
+    $('sex').value = S.sex;
+    pressed('[data-status]', b => b.dataset.status === S.status);
+  },
+  1() {
+    pressed('[data-group]', b => has(S.groups, Number(b.dataset.group)));
+    $('groupText').innerHTML = S.groups.map((g, i) => `<div><b>${i ? '강점' : '주 경력'} · ${GROUPS[g].n}</b><p class="help">만들 수 있는 AI 자산</p><ul class="tags">${GROUPS[g].a.map(t => `<li>${t}</li>`).join('')}</ul><p class="warn">${GROUPS[g].w}</p></div>`).join('')
+      || '<p class="help">일을 고르면 만들 수 있는 AI 자산과 주의사항이 표시됩니다.</p>';
+  },
+  2() {
+    $('exp').value = S.exp;
+    pressed('[data-exp]', b => Number(b.dataset.exp) === S.expType);
+    $('expOut').textContent = S.expType !== null ? `만들 수 있는 AI 자산: ${EXP[S.expType].o.join(', ')}` : '';
+  },
+  3() {
+    pressed('.side', b => S.sides[b.dataset.stage] === Number(b.dataset.side));
+    const picks = S.sides.map((n, i) => n === null ? null : STAGES[i].o[n]), chosen = picks.filter(Boolean);
+    $('flowResult').innerHTML = chosen.length
+      ? `<strong>${picks.map(p => p ? p.k : '·').join('')}</strong><p>${chosen.map(p => p.d).join(' ')}</p><p class="help">놓치기 쉬운 점</p><ul class="plain">${chosen.map(p => `<li>${p.f}</li>`).join('')}</ul><p class="warn">의심 단계는 유형과 상관없이 생략하지 않습니다. 안전 판단은 사람이 최종 확인합니다.</p>`
+      : '<p>선택하면 계획, 판단, 의심, 실행 순서로 맞춤 조언이 표시됩니다.</p>';
+  },
+  4() {
+    const order = ranked();
+    if (!order.includes(S.choice)) S.choice = null;
+    $('movedNote').textContent = order.join() !== recommended().join() ? '내 경험과 일하는 방식을 반영해 순위를 조정했습니다.' : '';
+    $('jobs').innerHTML = order.map((j, r) => `<button class="job" type="button" data-job="${j}" aria-pressed="false"><small>${r + 1}순위</small><b>${JOBS[j].n}</b></button>`).join('');
+    drawWires();
+  },
+  5() {
+    $('rate').innerHTML = baseRows(S.choice).filter(r => r.pct).map(r => `<li><small class="help">${SKILLS[r.k]}</small><p>${SKILL_Q[r.k]}</p><div class="scores">${SCALE.map((t, i) =>
+      `<button class="score" type="button" data-skill="${r.k}" data-score="${5 - i}" aria-label="${SKILLS[r.k]} ${t}" aria-pressed="${S.self[r.k] === 5 - i}">${i + 1}<small>${t}</small></button>`).join('')}</div></li>`).join('');
+  },
+  6() {
+    $('workTitle').textContent = S.status === 'c' ? '지금 회사에서 쓸 수 있을까요?' : '지금 내 일에 쓸 수 있을까요?';
+    CONDITIONS.forEach((c, i) => { $('cond' + i).checked = has(S.checks, i); $('condText' + i).textContent = c[S.status]; });
+    $('verdict').innerHTML = verdictHtml();
+  },
+  7() {
+    pressed('[data-plus]', b => has(S.plus, Number(b.dataset.plus)));
+    pressed('[data-minus]', b => has(S.minus, Number(b.dataset.minus)));
+    $('jobs').innerHTML = `<button class="job" type="button" data-job="${S.choice}" aria-pressed="true" disabled><small>내가 고른 일</small><b>${JOBS[S.choice].n}</b></button>`;
+    $('liveVerdict').innerHTML = verdictHtml();
+    drawWires();
+  },
+  8() {
+    const m = model();
+    FIVE.forEach(([k]) => { $('five-' + k).value = m[k]; });
+  },
+  9() {
+    const m = model(), rows = personalRows(), v = LEVELS[finalLevel()], hours = has(S.minus, 4) ? HOURS / 2 : HOURS;
+    const picks = S.sides.map((n, i) => n === null ? null : STAGES[i].o[n]);
+    const chosen = picks.filter(Boolean);
+    const avoid = [...AVOID_ALL, ...chosen.map(p => p.x)];
+    const planB = [...S.minus].sort().map(i => `${MINUS[i].n}: ${MINUS[i].p}`);
+    const helps = [...S.plus].sort().map(i => `${PLUS[i].n}: ${PLUS[i].p}`);
+    const person = S.name.trim() || '당신';
+    $('cardTitle').textContent = `${person}${S.name.trim() ? ' 님' : ''}의 AI 전문가 카드`;
+    const list = a => `<ul class="plain">${a.map(t => `<li>${esc(t)}</li>`).join('')}</ul>`;
+    const progress = rows.reduce((s, r) => s + (has(S.done, r.k) ? r.pct : 0), 0), complete = progress === 100;
+    const facts = [S.age, S.sex].filter(Boolean).map(esc);
+    $('card').innerHTML = `<p class="who">${[...facts, chosen.length ? picks.map(p => p ? p.k : '·').join('') : '', esc(JOBS[S.choice].n)].filter(Boolean).join(' · ')}</p>
+      <h2 class="main">${esc(person)}${S.name.trim() ? ' 님' : ''}은 AI 시대에 '${esc(m.role)}'${josa(m.role, '을를')} 목표로 삼을 수 있습니다.</h2>
+      <div><p class="${complete ? 'done-note' : 'help'}">${complete ? '나의 정의 · 학습 완성' : `완성하면 받을 정의 · 진행 ${progress}%`}</p><p><b>${identity(rows)}</b></p></div>
+      ${S.exp.trim() ? `<p class="help">출발 경험: ${esc(S.exp.trim())}</p>` : ''}
+      <dl>${FIVE.map(([k, n]) => `<dt>${n}</dt><dd>${esc(m[k])}</dd>`).join('')}</dl>
+      <div><h3>배울 것 · ${hours}시간 기준</h3><ul class="bars">${rows.map(r => `<li><div><b>${SKILLS[r.k]}</b><span>${r.pct}% · 약 ${(r.pct * hours / 100).toFixed(1)}시간</span></div><span class="bar"><i style="width:${r.pct}%"></i></span></li>`).join('')}</ul></div>
+      <div><h3>일하는 방법</h3><p>${chosen.length ? chosen.map(p => p.d).join(' ') : '작은 일 1건부터 시작해 결과를 확인하세요.'}</p></div>
+      ${chosen.length ? `<div><h3>놓치기 쉬운 점</h3>${list(chosen.map(p => p.f))}</div>` : ''}
+      <div><h3>5요소 맞춤 조언</h3>${list(adviceList(m))}</div>
+      <div><h3>피해야 할 것</h3>${list(avoid)}</div>
+      <div><h3>현업 적용 판단: ${v.t}</h3><p>${v.d}</p></div>
+      ${helps.length ? `<div><h3>도움이 되는 일 활용</h3>${list(helps)}</div>` : ''}
+      ${planB.length ? `<div><h3>플랜 B</h3>${list(planB)}</div>` : ''}
+      ${decisionHtml(m, rows)}`;
+    $('study').innerHTML = rows.map(r => `<li><label for="done${r.k}"><input type="checkbox" id="done${r.k}" data-done="${r.k}" ${has(S.done, r.k) ? 'checked' : ''}><b>${SKILLS[r.k]}</b><span>${r.pct}%</span></label></li>`).join('');
+    $('prompt').value = `제 목표 역할: ${m.role}\n맥락: ${m.context}\n목표: ${m.aim}\n만들 결과물: ${m.form}\n지켜야 할 조건: ${m.rule}\n${chosen.length ? `일하는 방식: ${chosen.map(p => p.t).join(', ')}\n` : ''}답할 때는 현장 사례를 먼저 들고, 확실하지 않은 내용은 '확인 필요'로 표시해 주세요. 제 생각과 다른 의견이 있으면 근거와 함께 알려 주세요.`;
+    $('copyMsg').textContent = '';
+  }
+};
+
+function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch { /* 저장이 막혀도 앱은 계속 쓴다 */ } }
+function load() { try { const d = JSON.parse(localStorage.getItem(KEY)); if (d) S = { ...blank(), ...d }; } catch { /* 저장값이 없거나 깨지면 처음부터 시작 */ } check(); }
+// 이전 버전 저장값이나 깨진 값으로 화면이 멈추지 않도록, 빠진 답이 있는 단계로 되돌린다. 입력값은 지우지 않는다.
+function check() {
+  const b = blank(), arr = (v, n) => Array.isArray(v) && (n === undefined || v.length === n);
+  ['groups', 'checks', 'plus', 'minus', 'done'].forEach(k => { if (!arr(S[k])) S[k] = b[k]; });
+  if (!arr(S.sides, STAGES.length)) S.sides = b.sides;
+  ['self', 'model'].forEach(k => { if (!S[k] || typeof S[k] !== 'object') S[k] = b[k]; });
+  S.groups = S.groups.filter(g => GROUPS[g]).slice(0, 2);
+  if (!EXP[S.expType]) S.expType = null;
+  if (!JOBS[S.choice] || !recommended().includes(S.choice)) S.choice = null;
+  S.step = Math.min(Math.max(Number.isInteger(S.step) ? S.step : 0, 0), LAST);
+  if (S.step > 1 && !S.groups.length) S.step = 1;
+  if (S.step > 2 && S.expType === null) S.step = 2;
+  if (S.step > 4 && S.choice === null) S.step = 4;
+}
+
+function need() {
+  if (S.step === 1 && !S.groups.length) return '주로 해 온 일을 하나 이상 골라 주세요.';
+  if (S.step === 2 && S.expType === null) return '경험이 어디에 가까운지 골라 주세요.';
+  if (S.step === 4 && S.choice === null) return '앞으로 해 볼 일을 하나 골라 주세요.';
+  return '';
+}
+
+let view = null;
+// 화면을 바꾸기 전에 이전 화면을 복사해 둔다. 첫 표시, 같은 화면, 움직임 줄이기 설정에서는 넘기지 않는다.
+function pageLeaf() {
+  document.querySelector('.leaf')?.remove();
+  const was = view, now = S.step;
+  view = now;
+  if (was === null || was === now || matchMedia('(prefers-reduced-motion: reduce)').matches) return null;
+  const page = document.querySelector('.flow-page'), leaf = page.cloneNode(true);
+  const fields = page.querySelectorAll('input, textarea, select');
+  leaf.querySelectorAll('input, textarea, select').forEach((f, i) => { f.value = fields[i].value; });
+  leaf.className = `page flow-page leaf ${now > was ? 'fwd' : 'rev'}`;
+  leaf.inert = true;
+  leaf.setAttribute('aria-hidden', 'true');
+  return leaf;
+}
+
+// 왼쪽 지도: 4단계 전에는 7개 직업을 쌓아 보고, 그 뒤에는 내 진단 결과를 보여 준다.
+function mapView() {
+  const vars = !full && S.step === 7;
+  $('plusGate').hidden = $('minusGate').hidden = !vars;
+  $('mapInfo').hidden = !full;
+  $('mapClose').hidden = !full || S.step < 4;
+  $('jobs').classList.toggle('all', full);
+  if (full) $('jobs').innerHTML = JOBS.map((j, i) => `<button class="job" type="button" data-job="${i}" aria-pressed="false"><small>${String(i + 1).padStart(2, '0')}</small><b>${j.n}</b></button>`).join('');
+  else if (S.step === 4) ENTER[4]();
+  else $('jobs').innerHTML = `<button class="job" type="button" data-job="${S.choice}" aria-pressed="true" disabled><small>내가 고른 일</small><b>${JOBS[S.choice].n}</b></button>`;
+  drawWires();
+}
+function freeMap() { if (!full) { full = true; mapView(); } }
+
+function setPage(p) {
+  document.querySelector('.app').dataset.page = p;
+  $('pageMap').setAttribute('aria-pressed', p === 'map');
+  $('pageFlow').setAttribute('aria-pressed', p === 'flow');
+}
+$('pageMap').addEventListener('click', () => setPage('map'));
+$('pageFlow').addEventListener('click', () => setPage('flow'));
+
+function show() {
+  const leaf = pageLeaf(), top = scrollY;
+  mapRun++; mapPlaying = false;
+  full = S.step < 4;
+  document.querySelectorAll('[data-step]').forEach(s => { s.hidden = Number(s.dataset.step) !== S.step; });
+  document.querySelector('.app').classList.toggle('both', S.step === 4 || S.step === 7);
+  $('liveVerdict').hidden = S.step !== 7;
+  $('info').hidden = true;
+  pressed('.skill', () => false);
+  $('stepText').textContent = `제 ${S.step + 1}장 · ${S.step + 1} / ${LAST + 1}단계`;
+  $('stepBar').style.width = (S.step + 1) / (LAST + 1) * 100 + '%';
+  $('back').hidden = S.step === 0;
+  $('nav').hidden = S.step === LAST;
+  $('next').textContent = S.step === 0 ? '시작하기' : S.step === LAST - 1 ? '내 카드 보기' : '다음';
+  $('nav').style.gridTemplateColumns = S.step === 0 ? 'minmax(0, 1fr)' : '';
+  $('navMsg').textContent = '';
+  ENTER[S.step]?.();
+  mapView();
+  save();
+  if (leaf) {
+    document.querySelector('.flow-page').append(leaf);
+    leaf.scrollTop = top;
+    setTimeout(() => leaf.remove(), 650);
+  }
+  scrollTo(0, 0);
+}
+
+function refresh() { ENTER[S.step]?.(); save(); }
+
+$('next').addEventListener('click', () => {
+  const msg = need();
+  if (msg) { $('navMsg').textContent = msg; return; }
+  S.step++; show();
+});
+$('back').addEventListener('click', () => { S.step--; show(); });
+$('name').addEventListener('input', e => { S.name = e.target.value; save(); });
+$('age').addEventListener('change', e => { S.age = e.target.value; save(); });
+$('sex').addEventListener('change', e => { S.sex = e.target.value; save(); });
+$('skills').addEventListener('click', e => {
+  const b = e.target.closest('.skill');
+  if (!b) return;
+  const k = SKILLS.indexOf(b.querySelector('b').textContent);
+  pressed('.skill', x => x === b);
+  showInfo(`<b>${SKILLS[k]}</b><p>${SKILL_D[k]}</p><ul class="tags">${JOBS.filter(j => j.s.includes(k)).map(j => `<li>${j.n}</li>`).join('')}</ul>`);
+});
+$('study').addEventListener('change', e => {
+  const k = Number(e.target.dataset.done);
+  S.done = toggle(S.done, k);
+  refresh();
+  $('done' + k).focus();
+});
+$('mapClose').addEventListener('click', () => { mapRun++; mapPlaying = false; full = false; mapView(); });
+$('cardMap').addEventListener('click', () => { freeMap(); setPage('map'); });
+$('mapReset').addEventListener('click', () => { freeMap(); clearMap(); });
+$('mapPlay').addEventListener('click', () => { freeMap(); playMap(); });
+$('exp').addEventListener('input', e => { S.exp = e.target.value; save(); });
+$('statusChoices').addEventListener('click', e => {
+  const b = e.target.closest('[data-status]');
+  if (b) { S.status = b.dataset.status; refresh(); }
+});
+$('groups').addEventListener('click', e => {
+  const b = e.target.closest('[data-group]');
+  if (!b) return;
+  const i = Number(b.dataset.group);
+  S.groups = has(S.groups, i) ? S.groups.filter(g => g !== i) : S.groups.length < 2 ? [...S.groups, i] : [S.groups[0], i];
+  S.choice = null; S.model = {}; S.self = {}; refresh();
+});
+$('expTypes').addEventListener('click', e => {
+  const b = e.target.closest('[data-exp]');
+  if (b && Number(b.dataset.exp) !== S.expType) { S.expType = Number(b.dataset.exp); S.model = {}; refresh(); }
+});
+$('stages').addEventListener('click', e => {
+  const b = e.target.closest('.side');
+  if (!b) return;
+  const i = Number(b.dataset.stage), n = Number(b.dataset.side);
+  S.sides[i] = S.sides[i] === n ? null : n;
+  refresh();
+});
+$('jobs').addEventListener('click', e => {
+  const b = e.target.closest('.job');
+  if (!b) return;
+  const j = Number(b.dataset.job);
+  if (full) {
+    mapRun++; mapPlaying = false;
+    showInfo(`<b>${JOBS[j].n}</b><p>${JOBS[j].w}</p><ul class="tags">${JOBS[j].s.map(k => `<li>${SKILLS[k]}</li>`).join('')}</ul>`);
+    if (picked.has(j)) { picked.delete(j); arrived.forEach(a => a.delete(j)); paintFull(); } else addMapJob(j);
+  } else if (S.step === 4) {
+    // 같은 일을 다시 누르면 흐름만 다시 보여 주고 자가진단·5요소 수정·학습 체크는 지우지 않는다
+    if (j === S.choice) { const keep = { model: S.model, done: S.done }; chooseJob(j); Object.assign(S, keep); save(); }
+    else { S.self = {}; chooseJob(j); }
+  }
+});
+$('rate').addEventListener('click', e => {
+  const b = e.target.closest('.score');
+  if (!b) return;
+  S.self[b.dataset.skill] = Number(b.dataset.score);
+  pressed(`.score[data-skill="${b.dataset.skill}"]`, x => x === b);
+  save();
+});
+$('conds').addEventListener('change', e => {
+  S.checks = toggle(S.checks, Number(e.target.dataset.cond));
+  $('verdict').innerHTML = verdictHtml(); save();
+});
+function changed() { pressed('[data-plus]', b => has(S.plus, Number(b.dataset.plus))); pressed('[data-minus]', b => has(S.minus, Number(b.dataset.minus))); $('liveVerdict').innerHTML = verdictHtml(); paint(); save(); }
+$('plusGate').addEventListener('click', e => {
+  const b = e.target.closest('[data-plus]');
+  if (b) { S.plus = toggle(S.plus, Number(b.dataset.plus)); changed(); }
+});
+$('minusGate').addEventListener('click', e => {
+  if (e.target.id === 'draw') {
+    const rest = MINUS.map((_, i) => i).filter(i => !has(S.minus, i));
+    S.minus = [rest[Math.floor(Math.random() * rest.length)] ?? 0];
+    changed(); return;
+  }
+  const b = e.target.closest('[data-minus]');
+  if (b) { S.minus = toggle(S.minus, Number(b.dataset.minus)); changed(); }
+});
+$('fiveFields').addEventListener('input', e => { S.model[e.target.dataset.five] = e.target.value; save(); });
+
+function copy(text, ok) {
+  const fail = () => { $('copyMsg').textContent = '복사가 막혔습니다. 글자를 길게 눌러 직접 복사해 주세요.'; };
+  // 클립보드 권한이 막힌 환경(파일로 연 앱 등)에서는 예전 복사 방식으로 한 번 더 시도한다
+  const legacy = () => {
+    const t = document.createElement('textarea');
+    t.value = text; t.setAttribute('readonly', ''); t.style.cssText = 'position:fixed;top:0;left:0;opacity:0';
+    document.body.append(t); t.select();
+    let done = false; try { done = document.execCommand('copy'); } catch { /* 지원하지 않는 브라우저 */ }
+    t.remove();
+    if (done) $('copyMsg').textContent = ok; else fail();
+  };
+  try { navigator.clipboard.writeText(text).then(() => { $('copyMsg').textContent = ok; }, legacy); } catch { legacy(); }
+}
+$('copyPrompt').addEventListener('click', () => copy($('prompt').value, '지침문을 복사했습니다.'));
+$('copyCard').addEventListener('click', () => copy($('card').innerText, '결과를 복사했습니다.'));
+$('restart').addEventListener('click', () => { S = blank(); show(); });
+$('sample').addEventListener('click', () => {
+  S = { ...blank(), step: LAST, name: '홍길동(예시)', groups: [0, 3], exp: '반복되던 하자 원인을 찾아 점검 순서를 바꿨습니다.', expType: 2, sides: [1, 0, 0, 0], choice: 1,
+    self: { 2: 4, 6: 2, 3: 2, 4: 4, 7: 3 }, checks: [0, 1, 3, 5], minus: [1] };
+  show();
+});
+$('fontBtn').addEventListener('click', e => {
+  const big = document.documentElement.classList.toggle('big');
+  e.target.textContent = big ? '글자 보통' : '글자 크게';
+});
+new ResizeObserver(drawWires).observe(stage);
+
+// 온라인 앱에서만 설치 파일을 내려받는다. 설치된 앱에는 파일이 들어 있지 않아 버튼이 숨는다.
+const zipText = $('installerZip').textContent.trim();
+if (zipText && window.claude?.use) claude.use('downloads').then(downloads => {
+  if (!downloads) return;
+  $('installBtn').hidden = false;
+  $('installBtn').addEventListener('click', async () => {
+    const say = t => { $('installMsg').textContent = t; $('installMsg').hidden = false; };
+    const bytes = Uint8Array.from(atob(zipText), c => c.charCodeAt(0));
+    try {
+      await downloads.save({ filename: `AI다음행보_${document.querySelector('.ver').textContent}_설치.zip`, data: bytes });
+      say('받은 ZIP 파일을 열고 안의 설치 파일을 더블클릭하세요. 바탕화면에 아이콘이 생기고 앱이 실행됩니다.');
+    } catch (e) {
+      if (e.code !== 'declined') say('이 화면에서는 파일을 받을 수 없습니다. 잠시 후 다시 눌러 주세요.');
+    }
+  });
+});
+
+load();
+show();
+</script>
+
+</body></html>

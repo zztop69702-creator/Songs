@@ -1,0 +1,53 @@
+$ErrorActionPreference = 'Stop'
+$name = 'AI다음행보'
+$ver = 'v1.7'
+$text = [IO.File]::ReadAllText($env:SELF)
+function Block($tag) { [Convert]::FromBase64String([regex]::Match($text, "$tag\r?\n([A-Za-z0-9+/=]+)").Groups[1].Value) }
+
+# 앱 위치가 바뀌어도 입력값이 남도록 프로필과 위치 기록은 항상 이 폴더에 둔다
+$data = Join-Path $env:LOCALAPPDATA $name
+$record = Join-Path $data 'install_path.txt'
+$previous = if (Test-Path -LiteralPath $record) { [IO.File]::ReadAllText($record).Trim() } else { $data }
+
+Add-Type -AssemblyName System.Windows.Forms
+$dialog = New-Object Windows.Forms.FolderBrowserDialog
+$dialog.Description = "$name 앱을 설치할 폴더를 고르세요. 고른 폴더 안에 '$name' 폴더가 만들어집니다."
+$dialog.SelectedPath = Split-Path $previous -Parent
+$owner = New-Object Windows.Forms.Form
+$owner.TopMost = $true
+if ($dialog.ShowDialog($owner) -ne [Windows.Forms.DialogResult]::OK) { Write-Host '설치를 취소했습니다.'; return }
+$picked = $dialog.SelectedPath
+$dir = if ((Split-Path $picked -Leaf) -eq $name) { $picked } else { Join-Path $picked $name }
+
+New-Item -ItemType Directory -Force $dir, $data | Out-Null
+$html = Join-Path $dir "${name}_$ver.html"
+$ico = Join-Path $dir "$name.ico"
+[IO.File]::WriteAllBytes($html, (Block '__HTML__'))
+[IO.File]::WriteAllBytes($ico, (Block '__ICO__'))
+# 새 파일을 쓴 뒤에 지워서, 쓰기에 실패해도 이전 앱이 남게 한다
+Get-ChildItem -LiteralPath $previous, $dir -Filter "${name}_v*.html" -ErrorAction SilentlyContinue | Where-Object { $_.FullName -ne $html } | Remove-Item -Force
+[IO.File]::WriteAllText($record, $dir)
+
+$browsers = @(
+  "$env:ProgramFiles\Google\Chrome\Application\chrome.exe",
+  "$env:LOCALAPPDATA\Google\Chrome\Application\chrome.exe",
+  "${env:ProgramFiles(x86)}\Microsoft\Edge\Application\msedge.exe",
+  "$env:ProgramFiles\Microsoft\Edge\Application\msedge.exe"
+)
+$browser = $browsers | Where-Object { Test-Path $_ } | Select-Object -First 1
+$url = ([Uri]$html).AbsoluteUri
+
+$shell = New-Object -ComObject WScript.Shell
+$folders = @([Environment]::GetFolderPath('Desktop'), [Environment]::GetFolderPath('Programs'))
+foreach ($folder in $folders) {
+  $link = $shell.CreateShortcut((Join-Path $folder "$name.lnk"))
+  # 평소 쓰는 브라우저 설정과 분리된 전용 프로필로 앱 창을 연다
+  if ($browser) { $link.TargetPath = $browser; $link.Arguments = "--user-data-dir=`"$data\profile`" --no-first-run --no-default-browser-check --app=`"$url`"" } else { $link.TargetPath = $html }
+  $link.IconLocation = "$ico,0"
+  $link.Description = "$name $ver"
+  $link.WorkingDirectory = $dir
+  $link.Save()
+}
+try { & ie4uinit.exe -show } catch { }
+Write-Host "$name $ver 설치가 끝났습니다. 앱을 실행합니다."
+Start-Process (Join-Path $folders[0] "$name.lnk")
