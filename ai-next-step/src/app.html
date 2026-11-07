@@ -1199,6 +1199,7 @@ function pickModeView() {
 }
 function cityData(rows, filled, top, first, cuts) {
   city.rows = filled ? rows.map(r => ({ k: r.k, pct: r.pct, first: first.includes(r.k), done: S.step === LAST && has(S.done, r.k), cut: cuts.includes(r.k) })) : [];
+  city.have = filled && !full && !mapFree ? SKILLS.map((_, k) => ({ k, cnt: S.have.filter(j => JOBS[j].s.includes(k)).length })).filter(x => x.cnt).sort((a, b) => b.cnt - a.cnt || a.k - b.k).slice(0, 6) : [];
   city.hours = has(S.minus, 4) ? HOURS / 2 : HOURS;
   city.top = top || 1;
   drawCity(performance.now());
@@ -1218,11 +1219,11 @@ function drawCity(now) {
   const calmNow = still(), t = calmNow ? 1.5 : (now - city.t0) / 1000;
   const dt = Math.min(0.1, (now - (city.prev || now)) / 1000); city.prev = now;
   const font = getComputedStyle(document.body).fontFamily;
-  const rows = city.rows, n = rows.length;
+  const rows = city.rows, hv = city.have || [], nW = rows.length, nH = hv.length, two = nW > 0 && nH > 0, n = nW + nH + (two ? 1 : 0);
   const usable = W - 36, sp = usable / Math.max(n, 1), half = Math.max(6, Math.min(18, sp * 0.2));
   const stagger = n > 1 && sp < 86;
   const yaw = 0.18 + 0.14 * Math.sin(t * 0.4), cs = Math.cos(yaw), sn = Math.sin(yaw);
-  const tilt = usable / 2 * Math.sin(0.32) * 0.42, topPad = 44, botPad = stagger ? 36 : 22;
+  const tilt = usable / 2 * Math.sin(0.32) * 0.42, topPad = nH ? 84 : 44, botPad = stagger ? 36 : 22;
   const avail = H - topPad - botPad - 2 * tilt, maxH = Math.max(18, Math.min(240, avail));
   const baseY = H - botPad - tilt - Math.max(0, avail - maxH) / 2, cx = W / 2;
   const P = (x, y, z) => [cx + x * cs - y * sn, baseY + (x * sn + y * cs) * 0.42 - z];
@@ -1236,7 +1237,7 @@ function drawCity(now) {
   g.textBaseline = 'alphabetic'; g.font = `700 11px ${font}`; g.textAlign = 'left'; g.fillStyle = '#a5f3fc';
   g.fillText(`역량 도시 · ${city.hours}시간 기준`, 10, 16);
   g.font = `600 10px ${font}`; g.textAlign = 'right'; g.fillStyle = '#94a3b8';
-  g.fillText('높이 = 배분 % · 분홍 = 먼저 · 초록 = 완료', W - 10, 16);
+  g.fillText(nH ? '분홍 = 먼저 · 금색 = 완료 · 초록 줄무늬 = 하고 있는 것' : '높이 = 배분 % · 분홍 = 먼저 · 금색 = 완료', W - 10, 16);
   if (!n) {
     g.textAlign = 'center'; g.font = `600 11px ${font}`; g.fillStyle = '#94a3b8';
     g.fillText('전문가를 고르면 배울 역량이 막대로 섭니다', cx, baseY - 10);
@@ -1248,11 +1249,30 @@ function drawCity(now) {
     const h = calmNow ? target : cur + (target - cur) * Math.min(1, dt * 5);
     seen[q.k] = h;
     return { ...q, i, x: (i - (n - 1) / 2) * sp, h };
-  });
+  }).concat(hv.map((q, i) => { // 오른쪽 무리: 하고 있는 것. 높이 = 그 역량이 들어 있는 하고 있는 역할 수(최대 4)
+    const s = nW + (two ? 1 : 0) + i, target = Math.max(6, q.cnt / HAVE_MAX * maxH * 0.9), cur = city.h['h' + q.k] ?? 0;
+    const h = calmNow ? target : cur + (target - cur) * Math.min(1, dt * 5);
+    seen['h' + q.k] = h;
+    return { ...q, i: s, x: (s - (n - 1) / 2) * sp, h, doing: true };
+  }));
+  // 두 무리 이름과 바닥 나눔선
+  const xOf = s => (s - (n - 1) / 2) * sp;
+  // 무리 이름: 크게, 배지 안에, 아래로 괄호선을 그어 어느 막대들인지 잇는다 (사용자 표시)
+  const group = (a, b, text, color, rgb) => {
+    const l = P(xOf(a) - half, 0, 0)[0], r = P(xOf(b) + half, 0, 0)[0], mx = (l + r) / 2;
+    g.font = `800 14px ${font}`; const w = g.measureText(text).width + 22;
+    g.fillStyle = `rgba(${rgb}, .16)`; g.strokeStyle = `rgba(${rgb}, .8)`; g.lineWidth = 1.2;
+    g.beginPath(); g.roundRect(mx - w / 2, 24, w, 24, 12); g.fill(); g.stroke();
+    g.textAlign = 'center'; g.fillStyle = color; g.fillText(text, mx, 41);
+    g.beginPath(); g.moveTo(l, 60); g.lineTo(l, 54); g.lineTo(r, 54); g.lineTo(r, 60); g.moveTo(mx, 48); g.lineTo(mx, 54); g.stroke(); g.lineWidth = 1;
+  };
+  if (nW && nH) group(0, nW - 1, '하고 싶은 것 · 배울 시간', '#a5f3fc', '34, 211, 238');
+  if (nH) group(nW + (two ? 1 : 0), n - 1, '하고 있는 것 · 이미 가진 역량', '#86efac', '74, 222, 128');
+  if (two) { g.setLineDash([4, 4]); g.strokeStyle = 'rgba(148, 163, 184, .5)'; g.beginPath(); g.moveTo(...P(xOf(nW), -fy, 0)); g.lineTo(...P(xOf(nW), fy, 0)); g.stroke(); g.setLineDash([]); }
   city.h = seen;
   items.sort((a, b) => P(a.x, 0, 0)[1] - P(b.x, 0, 0)[1]);
   for (const it of items) {
-    const rgb = it.done ? '74, 222, 128' : it.first ? '244, 114, 182' : '34, 211, 238';
+    const rgb = it.doing ? '74, 222, 128' : it.done ? '251, 191, 36' : it.first ? '244, 114, 182' : '34, 211, 238';
     const corners = [[-half, -half], [half, -half], [half, half], [-half, half]].map(([a, b]) => [it.x + a, b]);
     g.globalAlpha = it.cut ? 0.45 : 1;
     g.setLineDash(it.cut ? [3, 3] : []);
@@ -1260,7 +1280,8 @@ function drawCity(now) {
     for (let k = 0; k < 4; k++) {
       const a = corners[k], b = corners[(k + 1) % 4];
       path([P(a[0], a[1], 0), P(b[0], b[1], 0), P(b[0], b[1], it.h), P(a[0], a[1], it.h)]);
-      g.fillStyle = `rgba(${rgb}, .14)`; g.fill(); g.stroke();
+      g.fillStyle = `rgba(${rgb}, ${it.doing ? .08 : .14})`; g.fill(); g.stroke();
+      if (it.doing) { g.save(); g.strokeStyle = `rgba(${rgb}, .55)`; for (let z = 6; z < it.h; z += 7) { g.beginPath(); g.moveTo(...P(a[0], a[1], z)); g.lineTo(...P(b[0], b[1], z)); g.stroke(); } g.restore(); } // 다른 무늬: 층 줄무늬
     }
     g.shadowColor = `rgb(${rgb})`; g.shadowBlur = 12;
     path(corners.map(c => P(c[0], c[1], it.h))); g.fillStyle = `rgba(${rgb}, .7)`; g.fill(); g.stroke();
@@ -1272,8 +1293,8 @@ function drawCity(now) {
     g.globalAlpha = 1;
     const top = P(it.x, -half, it.h), base = P(it.x, half, 0);
     g.textAlign = 'center';
-    g.font = `700 10.5px ${font}`; g.fillStyle = it.done ? '#86efac' : it.first ? '#f9a8d4' : '#a5f3fc';
-    g.fillText(`${(it.pct * city.hours / 100).toFixed(1)}시간`, top[0], top[1] - 6);
+    g.font = `700 10.5px ${font}`; g.fillStyle = it.doing ? '#86efac' : it.done ? '#fde68a' : it.first ? '#f9a8d4' : '#a5f3fc';
+    g.fillText(it.doing ? `✓ ${it.cnt}개 역할` : `${(it.pct * city.hours / 100).toFixed(1)}시간`, top[0], top[1] - 6 - (sp < 70 && it.i % 2 ? 13 : 0));
     g.font = `600 10.5px ${font}`; g.fillStyle = '#e2e8f0';
     g.fillText(SKILLS[it.k], base[0], base[1] + 14 + (stagger && it.i % 2 ? 14 : 0));
   }
