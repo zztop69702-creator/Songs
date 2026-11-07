@@ -29,7 +29,7 @@ const STATE = { step: 8, name: '홍길동(예시)', groups: [1, 2], expType: 1, 
     await p.click('#motionBtn'); await p.waitForTimeout(200);
     const s3 = await sig(p); await p.waitForTimeout(500); const s4 = await sig(p);
     await p.click('#motionBtn'); await p.waitForTimeout(200);
-    await p.click('#mapReset'); await p.waitForTimeout(600);
+    await p.click('#mapReset'); await p.click('#resetMap'); await p.waitForTimeout(600); // 확인 창에서 '1쪽 지도만 비우기'
     const iReset = await info(p);
     if (vp.width === 1320) await p.locator('.map-page').screenshot({ path: `${out}/city_${vp.width}_비움.png` });
     await p.click('#mapGoals'); await p.waitForTimeout(1500);

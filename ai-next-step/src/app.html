@@ -288,6 +288,14 @@ body { margin: 0; background: linear-gradient(135deg, var(--sky), var(--mint)); 
 .skill { border-color: var(--wire) }
 .chip { border-radius: 999px; padding: 3px 8px; min-height: 32px; font-size: .72rem }
 .chip:disabled { cursor: not-allowed; border-style: dashed }
+#resetDlg { border: 0; border-radius: 18px; padding: 22px 24px; width: min(92vw, 460px); background: #fff; color: #0f172a; box-shadow: 0 20px 60px rgba(15, 23, 42, .35); font-family: var(--font) }
+#resetDlg::backdrop { background: rgba(15, 23, 42, .55) }
+#resetDlg h2 { margin: 0 0 10px; font-size: 1.2rem }
+#resetDlg p { margin: 0 0 8px; line-height: 1.55 }
+#resetDlg .actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-top: 14px }
+#resetDlg .line-btn, .danger-btn { min-height: 44px; padding: 4px 16px; font-size: .9rem }
+.danger-btn { border: 0; border-radius: 12px; background: #b91c1c; color: #fff; font-weight: 800; cursor: pointer }
+.danger-btn:hover, .danger-btn:focus-visible { background: #991b1b }
 /* 1쪽 아래 빈 공간 = 3D 역량 도시(1안). 남는 높이만 쓰고, 낮으면(120px 미만) 비워 둔다 */
 #stage { grid-template-rows: auto auto minmax(0, 1fr) auto auto }
 #stage > #deep { grid-column: 1 / -1; grid-row: 3; position: relative; min-height: 0; border-radius: 12px; overflow: hidden; pointer-events: none }
@@ -563,6 +571,18 @@ input[type="text"], textarea, select { border-radius: 14px }
   </div>
 </main>
 
+<dialog id="resetDlg" aria-labelledby="resetTitle">
+  <form method="dialog">
+    <h2 id="resetTitle">지도와 답변을 모두 지울까요?</h2>
+    <p>1쪽 지도와 2쪽에 적은 답변(이름, 경력, 경험, 목표, 자가진단 등)이 <b>모두 지워지고</b> 처음부터 시작합니다. 지운 내용은 되돌릴 수 없습니다.</p>
+    <p class="help">2쪽 답변은 두고 1쪽 지도만 비우려면 '1쪽 지도만 비우기'를 누르세요.</p>
+    <div class="actions">
+      <button class="line-btn" value="cancel" autofocus>취소</button>
+      <button class="line-btn" value="map" id="resetMap">1쪽 지도만 비우기</button>
+      <button class="danger-btn" value="all" id="resetAll">모두 지우기</button>
+    </div>
+  </form>
+</dialog>
 <script id="installerZip" type="text/plain"></script>
 <script>
 // 9~13번째 역량은 v1.8에 추가 (기존 번호는 그대로 두어 저장된 자가진단 값이 유지된다). 'AI 기초 이해'는 'AI 리터러시'로 넓혔다
@@ -1533,8 +1553,21 @@ async function rebuildMap() {
   done();
   if (run === flowing) paint();
 }
+// 지도 비우기: 먼저 확인 창을 띄운다(사용자 요청). '모두 지우기'는 1쪽 지도와 2쪽 답변을 모두 지우고 처음부터 시작하며,
+// '1쪽 지도만 비우기'는 예전 동작(2쪽 답과 목표는 두고 1쪽만 탐색 모드)을 그대로 남긴다. 전체 지도 시연 중에는 시연만 지운다
 $('mapReset').addEventListener('click', () => {
   if (full) { clearMap(); return; }
+  const dlg = $('resetDlg');
+  if (typeof dlg.showModal !== 'function') { if (confirm('1쪽 지도와 2쪽 답변을 모두 지우고 처음부터 시작할까요?')) resetAll(); return; }
+  dlg.returnValue = ''; dlg.showModal();
+});
+$('resetDlg').addEventListener('close', e => { const v = e.target.returnValue; if (v === 'all') resetAll(); else if (v === 'map') mapOnlyReset(); });
+function resetAll() {
+  S = blank(); mapFree = false; save(); show();
+  showInfo('<b>모두 지웠습니다.</b> 1쪽 지도와 2쪽 답변을 비우고 처음부터 시작합니다.');
+  lastFlow = Date.now(); drawWires();
+}
+function mapOnlyReset() {
   // 1쪽을 완전히 비운다. 목표(①②③)는 2쪽 답이라 결과 카드에는 그대로 남고, '내 목표 보기'로 다시 볼 수 있다
   S.picks = []; save(); if (S.step === 4) ENTER[4]();
   mapFree = S.goals.length > 0;
@@ -1542,7 +1575,7 @@ $('mapReset').addEventListener('click', () => {
     ? '<b>1쪽 지도를 비웠습니다.</b> 전문가를 눌러 자유롭게 탐색해 보세요. 2쪽 목표(①②③)와 결과는 그대로이며, \'내 목표 보기\'를 누르면 다시 나타납니다.'
     : '<b>지도를 비웠습니다.</b> 관심 전문가를 다시 누르면 새로 이어집니다.');
   lastFlow = Date.now(); drawWires();
-});
+}
 $('motionBtn').addEventListener('click', () => {
   motionPref = still() ? 'on' : 'off';
   try { localStorage.setItem('experience-ai-motion', motionPref); } catch { /* 기억하지 못해도 이번 화면에는 적용 */ }

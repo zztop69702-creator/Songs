@@ -25,7 +25,7 @@ const [file, out] = process.argv.slice(2);
     const s0 = await snap(); await p.waitForTimeout(400); const s0b = await snap();
     console.log(tag, '① 처음:', JSON.stringify(s0), '| 0.4초 뒤 점x', s0b.점x || '없음');
     if (motion !== 'reduce') await p.screenshot({ path: `${out}/검증1_처음.png` });
-    await p.click('#mapReset'); await p.waitForTimeout(500);
+    await p.click('#mapReset'); await p.click('#resetMap'); await p.waitForTimeout(500); // 확인 창에서 '1쪽 지도만 비우기'
     const s1 = await snap();
     console.log(tag, '② 지도 비우기:', JSON.stringify(s1));
     if (motion !== 'reduce') await p.screenshot({ path: `${out}/검증2_지도비우기.png` });
