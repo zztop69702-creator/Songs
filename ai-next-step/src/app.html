@@ -294,17 +294,21 @@ body { margin: 0; background: linear-gradient(135deg, var(--sky), var(--mint)); 
 .pick-mode button[data-mode="want"][aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent) }
 .pick-mode button[data-mode="have"][aria-pressed="true"] { background: #15803d; border-color: #15803d; color: #fff }
 .src.g4 { background: rgba(167, 139, 250, .16); border-color: #a78bfa; box-shadow: 0 0 14px rgba(167, 139, 250, .55) } .src.g4 .bin { color: #c4b5fd }
-.src.gh { background: rgba(74, 222, 128, .12); border-color: #4ade80; box-shadow: 0 0 12px rgba(74, 222, 128, .45) } .src.gh .bin { color: #86efac }
+.src.gh { background: #0f2e2a; border-color: #4ade80; box-shadow: 0 0 12px rgba(74, 222, 128, .45) } .src.gh .bin { color: #86efac }
 #wires path.g4 { color: #a78bfa } #wires path.on.g4 { stroke: #a78bfa } #wires circle.g4 { color: #a78bfa; fill: #ddd6fe }
 #wires path.gh { color: #4ade80 } #wires path.on.gh { stroke: #4ade80 } #wires circle.gh { color: #4ade80; fill: #bbf7d0 }
 #stage.two { grid-template-columns: minmax(176px, 36%) minmax(30px, 1fr) minmax(160px, 36%) }
-#sources.two { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px; align-items: start }
+#sources.two { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start }
 #sources .src-col { display: grid; gap: 7px; align-content: start }
 #sources .src-head { font-size: .6rem; font-weight: 800; color: #a5f3fc; white-space: nowrap } #sources .src-col.have .src-head { color: #86efac }
 #sources .src-empty { font-size: .62rem; color: #94a3b8 }
 #sources.two .src { padding: 4px 6px } #sources.two .src b { font-size: .7rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis } #sources.two .src small { font-size: .56rem }
 @media (max-width: 620px) { #stage.two { grid-template-columns: minmax(150px, 46%) minmax(10px, 1fr) minmax(118px, 40%) !important }
   .pick-mode button { font-size: .74rem; padding: 3px 6px; gap: 4px } .pick-mode button b { white-space: nowrap } #sources .src-head span { display: none } }
+#dream small { display: block } #dream .hope { color: #fde68a; font-weight: 700 }
+.hope-box { margin: 8px 0 12px; padding: 10px 14px; border-left: 4px solid var(--accent); border-radius: 10px; background: rgba(52, 120, 246, .06) }
+.hope-box p { margin: 3px 0; line-height: 1.5 } .hope-box small { display: inline-block; min-width: 7em; margin-right: 8px; color: var(--muted); font-weight: 700 }
+.hope-box .hope { color: #b45309; font-weight: 700 }
 .have-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px }
 .have-grid .chip { justify-content: flex-start; text-align: left; border-radius: 10px; min-height: 36px; font-size: .78rem }
 .have-grid .chip[aria-pressed="true"] { background: #15803d; border-color: #15803d; color: #fff }
@@ -1062,11 +1066,18 @@ function drawWires() {
   }
   const at = k => { const r = $('skill' + k).getBoundingClientRect(); return [r.left - b.left, r.top - b.top + r.height / 2]; };
   SKILLS.forEach((_, k) => { const [kx, y] = at(k); skillWire[k] = add(`M${hx} ${y}L${kx} ${y}`, 'sk'); });
+  const haveCol = $('sources').querySelector('.src-col.have')?.getBoundingClientRect();
+  let lane = 0;
   stage.querySelectorAll('.src').forEach(el => {
     const j = Number(el.dataset.job), c = el.dataset.c, r = el.getBoundingClientRect(), sx = r.right - b.left, sy = r.top - b.top + r.height / 2;
+    // 2단계 열 옆의 1단계 상자: 통로(두 열 사이)로 내려가 2단계 열 아래를 돌아간다
+    const detour = haveCol && el.closest('.src-col.want') && r.top < haveCol.bottom;
+    const ch = detour ? (sx + haveCol.left - b.left) / 2 : 0, by = detour ? haveCol.bottom - b.top + 8 + lane * 4 : 0, ex = detour ? haveCol.right - b.left + 6 : 0;
+    if (detour) lane++;
     JOBS[j].s.forEach(k => {
-      const [kx, y] = at(k), mid = (sx + hx) / 2;
-      const d = o => `M${sx} ${sy}C${mid + o} ${sy} ${hx - (hx - sx) * .25} ${y + o * .4} ${hx} ${y}S${kx - 24} ${y} ${kx} ${y}`;
+      const [kx, y] = at(k), x0 = detour ? ex : sx, y0 = detour ? by : sy, mid = (x0 + hx) / 2;
+      const head = o => detour ? `M${sx} ${sy}L${ch + o * .12} ${sy}L${ch + o * .12} ${by}L${ex} ${by}` : `M${sx} ${sy}`;
+      const d = o => `${head(o)}C${mid + o} ${y0} ${hx - (hx - x0) * .25} ${y + o * .4} ${hx} ${y}S${kx - 24} ${y} ${kx} ${y}`;
       const main = add(d(0), `pair ${c}`, c); main.dataset.j = j; main.dataset.k = k; pairWire.push(main);
       [-18, -8, 8, 18].forEach(o => { const f = add(d(o), `strand ${c}`, c); f.dataset.j = j; f.dataset.k = k; });
     });
@@ -1163,10 +1174,20 @@ const rowsNow = () => S.choice !== null && !mapFree ? personalRows() : S.picks.l
 // 단계별로 더해진 조건 (1쪽에 항상 표시)
 const CONDS = [['경력', () => S.groups.length], ['경험', () => S.expType !== null], ['일하는 방식', () => S.sides.some(n => n !== null)], ['관심 전문가', () => S.picks.length],
   ['목표', () => S.choice !== null], ['자가진단', () => Object.keys(S.self).length], ['적용 조건', () => S.checks.length], ['도움·돌발', () => S.plus.length + S.minus.length]];
+// 사용자의 갈망을 한 문장으로: 지금 하는 일 → AI 교육이라는 방향 → 되고 싶은 모습(희망). 1쪽 결론 · 카드 · 지침문이 같은 값을 쓴다
+function hope(rows) {
+  const src = sourceList(), lead = S.goals[0] ?? src[0];
+  if (lead === undefined || !rows.length) return null;
+  const now = S.have.length ? S.have.map(j => SHORT[j]).join(' · ') : S.groups.length ? GROUPS[S.groups[0]].n : '';
+  const hours = has(S.minus, 4) ? HOURS / 2 : HOURS;
+  return { now, hours, want: `${SKILL_CAN[rows[0].k]} 가능한 ${CAT_FIELD[CAT[lead]]} 전문가`, path: rows.slice(0, 3).map(r => SKILLS[r.k]) };
+}
+const HOPE_LINE = '희망은 멀지 않습니다. 지금의 경험에 AI를 곱하면 닿을 수 있습니다.';
 function dreamHtml(rows) {
-  const src = sourceList();
-  if (!src.length || !rows.length) return '<small>1단계 하고 싶은 것을 최대 4개 누르면</small><b>당신이 발전할 AI 전문가</b><small>를 보여 드립니다. 2쪽에서 답할수록 조건이 더해집니다.</small>';
-  return `<small>이런 선택이면 당신은</small><b>“${SKILL_CAN[rows[0].k]} 가능한 ${CAT_FIELD[CAT[src[0]]]} 전문가”</b><small>로 발전합니다.</small>`;
+  const h = hope(rows);
+  if (!h) return '<small>1단계 하고 싶은 것을 최대 4개 누르면</small><b>당신이 되고 싶은 AI 전문가</b><small>를 보여 드립니다. 2단계에 하고 있는 일을 더하면 가는 방향이 나옵니다.</small>';
+  return `<small>${h.now ? `지금 '${esc(h.now)}' 일을 하는 당신이 ` : '당신이 '}되고 싶은 모습</small><b>“${h.want}”</b>`
+    + `<small>가는 방향 · AI 교육 ${h.hours}시간: ${h.path.slice(0, 2).join(' → ')}</small><small class="hope">${HOPE_LINE}</small>`;
 }
 function paintMine(rows) {
   const dh = dreamHtml(rows);
@@ -1471,13 +1492,14 @@ const ENTER = {
       ${planB.length ? `<div><h3>플랜 B</h3>${list(planB)}</div>` : ''}
       ${decisionHtml(m, rows)}`;
     $('study').innerHTML = rows.map(r => `<li><label for="done${r.k}"><input type="checkbox" id="done${r.k}" data-done="${r.k}" ${has(S.done, r.k) ? 'checked' : ''}><b>${SKILLS[r.k]}</b><span>${r.pct}%</span></label></li>`).join('');
-    $('prompt').value = `제 목표 역할: ${m.role}\n맥락: ${m.context}\n목표: ${m.aim}\n${S.have.length ? `이미 해 본 역할: ${S.have.map(j => JOBS[j].n).join(', ')}\n` : ''}${S.goals.length > 1 ? `다음 후보: ${S.goals.slice(1).map((j, i) => `${i + 2}순위 ${JOBS[j].n}`).join(', ')}\n` : ''}만들 결과물: ${m.form}\n지켜야 할 조건: ${m.rule}\n${chosen.length ? `일하는 방식: ${chosen.map(p => p.t).join(', ')}\n` : ''}답할 때는 현장 사례를 먼저 들고, 확실하지 않은 내용은 '확인 필요'로 표시해 주세요. 제 생각과 다른 의견이 있으면 근거와 함께 알려 주세요.\n강화할 역량: ${rows.slice(0, 3).map(r => SKILLS[r.k]).join(', ')}\n첫 요청: 위 조건으로 '${m.form.split(',')[0].trim()}' 초안을 만들어 주세요. 표가 어울리면 표로 정리해 주세요.`;
+    $('prompt').value = `${(h => h ? `제 희망: ${h.now ? `지금 '${h.now}' 일을 하는 ` : ''}제가 AI 교육(${h.hours}시간: ${h.path.join(', ')})을 거쳐 '${h.want}'가 되고 싶습니다. 이 방향으로 도와주세요.\n` : '')(hope(rows))}제 목표 역할: ${m.role}\n맥락: ${m.context}\n목표: ${m.aim}\n${S.have.length ? `이미 해 본 역할: ${S.have.map(j => JOBS[j].n).join(', ')}\n` : ''}${S.goals.length > 1 ? `다음 후보: ${S.goals.slice(1).map((j, i) => `${i + 2}순위 ${JOBS[j].n}`).join(', ')}\n` : ''}만들 결과물: ${m.form}\n지켜야 할 조건: ${m.rule}\n${chosen.length ? `일하는 방식: ${chosen.map(p => p.t).join(', ')}\n` : ''}답할 때는 현장 사례를 먼저 들고, 확실하지 않은 내용은 '확인 필요'로 표시해 주세요. 제 생각과 다른 의견이 있으면 근거와 함께 알려 주세요.\n강화할 역량: ${rows.slice(0, 3).map(r => SKILLS[r.k]).join(', ')}\n첫 요청: 위 조건으로 '${m.form.split(',')[0].trim()}' 초안을 만들어 주세요. 표가 어울리면 표로 정리해 주세요.`;
     $('copyMsg').textContent = '';
     // 결론을 1쪽 지도앱에도 표시한다 (2쪽 카드와 같은 값)
     // 결론 요약 (먼저 자동으로 보여 준다). 값은 아래 전체 문서와 같다
     const learned = rows.reduce((s, r) => s + (has(S.done, r.k) ? r.pct : 0), 0);
     $('summary').innerHTML = `<p class="who">결론 요약${learned ? ` · 학습 ${learned}%` : ''}</p>
       <h2 class="main">${esc(person)}${S.name.trim() ? ' 님' : ''}의 목표: ${esc(m.role)}</h2>
+      ${(h => h ? `<div class="hope-box"><p><small>지금</small>${h.now ? esc(h.now) : '2쪽 경력에서 고른 일'}</p><p><small>가는 방향</small>AI 교육 ${h.hours}시간 · ${h.path.join(' → ')}</p><p><small>되고 싶은 모습</small><b>“${h.want}”</b></p><p class="hope">${HOPE_LINE}</p></div>` : '')(hope(rows))}
       <dl><dt>판단</dt><dd><b>${v.t}</b> · ${v.d}</dd><dt>정의</dt><dd>${esc(identity(rows))}</dd>
       <dt>목표</dt><dd>${S.goals.map((j, i) => `${i + 1}순위 ${esc(JOBS[j].n)}`).join(' · ')}</dd></dl>
       <div><h3>강화할 AI 역량 · ${hours}시간 기준</h3><ul class="bars">${rows.slice(0, 3).map(r => `<li><div><b>${SKILLS[r.k]}</b><span>${r.pct}% · 약 ${(r.pct * hours / 100).toFixed(1)}시간</span></div><span class="bar"><i style="width:${r.pct}%"></i></span></li>`).join('')}</ul>${rows.length > 3 ? `<p class="help">그 밖에 ${rows.slice(3).map(r => SKILLS[r.k]).join(', ')}</p>` : ''}</div>
