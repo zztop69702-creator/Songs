@@ -5,18 +5,21 @@
 <style>
 /* Layout: 50~60대가 한 화면에 한 가지만 답하는 10단계 진행. 큰 글씨와 큰 버튼을 기본으로 한다. */
 :root {
-  --desk: #14233c; --spine: #0b1526; --edge: #d8cdb3; --bg: #f7f3ea; --panel: #ece4d2; --card: #fffdf7; --ink: #14233c; --muted: #4d5a70;
-  --wire: #cfc5ad; --accent: #14233c; --gold: #7a5c16; --bright: #b8923a; --fill: #e8d6a3; --signal: #a8321f; --on-accent: #f7f3ea;
+  --sky: #e3f1fb; --mint: #e2f5ec; --bg: #ffffff; --panel: #eef6fb; --card: #ffffff; --ink: #1d3445; --muted: #52677a;
+  --wire: #c6dbe7; --accent: #1f6f9f; --gold: #1b7a45; --bright: #3fae7a; --fill: #cdeedc; --signal: #b8482a; --on-accent: #ffffff;
+  --shadow: 0 6px 22px rgba(40, 95, 130, .12);
   --font: "IBM Plex Sans KR", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
-  --serif: "Noto Serif KR", "Batang", "바탕", "AppleMyungjo", serif;
+  --serif: var(--font);
   font-size: 18px;
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
-  --desk: #0b1526; --spine: #050b16; --edge: #2c3d5a; --bg: #16233a; --panel: #1f2f4a; --card: #22344f; --ink: #f2ecdd; --muted: #b9c2d0;
-  --wire: #3d5072; --accent: #e0bd68; --gold: #e0bd68; --bright: #e0bd68; --fill: #6b5523; --signal: #ff9a7a; --on-accent: #14233c; color-scheme: dark } }
+  --sky: #0f1f2a; --mint: #10261f; --bg: #172a36; --panel: #1f3644; --card: #213b4a; --ink: #eaf4f8; --muted: #a9bfcc;
+  --wire: #36566a; --accent: #7cc4ec; --gold: #7fd6a6; --bright: #5cc493; --fill: #2f5a46; --signal: #ff9a7a; --on-accent: #0f2230;
+  --shadow: 0 6px 22px rgba(0, 0, 0, .35); color-scheme: dark } }
 :root[data-theme="dark"] {
-  --desk: #0b1526; --spine: #050b16; --edge: #2c3d5a; --bg: #16233a; --panel: #1f2f4a; --card: #22344f; --ink: #f2ecdd; --muted: #b9c2d0;
-  --wire: #3d5072; --accent: #e0bd68; --gold: #e0bd68; --bright: #e0bd68; --fill: #6b5523; --signal: #ff9a7a; --on-accent: #14233c; color-scheme: dark }
+  --sky: #0f1f2a; --mint: #10261f; --bg: #172a36; --panel: #1f3644; --card: #213b4a; --ink: #eaf4f8; --muted: #a9bfcc;
+  --wire: #36566a; --accent: #7cc4ec; --gold: #7fd6a6; --bright: #5cc493; --fill: #2f5a46; --signal: #ff9a7a; --on-accent: #0f2230;
+  --shadow: 0 6px 22px rgba(0, 0, 0, .35); color-scheme: dark }
 :root.big { font-size: 22px }
 
 * { box-sizing: border-box }
@@ -164,61 +167,98 @@ select { width: 100%; background: var(--card); border: 2px solid var(--wire); bo
 .main-btn { min-height: 56px; border-radius: 12px; padding: 8px 18px; font-weight: 700 }
 .line-btn { min-height: 56px; border-radius: 12px; padding: 8px 18px; font-weight: 700; background: transparent; border: 2px solid var(--accent); color: var(--accent) }
 
-/* 책 형태: 남색 책상 위 크림색 종이, 왼쪽 책등, 오른쪽 아래 종이 묶음 */
-.app { position: relative; background: var(--bg); padding: 26px 30px 34px; border-left: 12px solid var(--spine); border-radius: 3px 10px 10px 3px;
-  box-shadow: 3px 3px 0 var(--edge), 6px 6px 0 var(--wire), 0 16px 36px rgba(0, 0, 0, .35) }
-h1, h2, .brand, #stepText, .verdict strong, .hub strong { font-family: var(--serif) }
-.top { flex-wrap: wrap }
-.brand { color: var(--ink); white-space: nowrap }
-.track { height: 6px; border-radius: 3px }
-.track i, .bar i { background: var(--bright) }
-.cover-head { display: grid; gap: 12px; background: #14233c; color: #f7f3ea; padding: 28px; border-radius: 6px; border-bottom: 5px solid #d8b45a }
-.cover-head .help { color: #e4dcc8 }
-.card { border: 1px solid var(--wire); border-top: 5px solid var(--bright); border-radius: 4px; padding: 24px }
-.card .who, .card h3, .card dt, .verdict strong, .total, .done-note, .table-wrap tr.mine td { color: var(--gold) }
-.card h2.main { font-size: 1.55rem }
+/* 디자인: 부드러운 교육형. 연한 하늘·민트 바탕, 둥근 카드.
+   PC 좌우 2쪽: 1쪽은 화면에 고정된 지도앱(1쪽 높이 전체 사용), 2쪽은 답변 작성(이 쪽만 스크롤). */
+h1, h2, .brand, #stepText, .verdict strong, .hub strong { font-family: var(--font) }
+body { margin: 0; background: linear-gradient(135deg, var(--sky), var(--mint)); padding: 12px max(16px, env(safe-area-inset-right, 0px)) 12px max(16px, env(safe-area-inset-left, 0px)) }
+.app { max-width: 1480px; height: calc(100vh - 24px); margin: 0 auto; padding: 0; background: none; border: 0; border-radius: 0; box-shadow: none;
+  grid-template-columns: minmax(0, 1.12fr) minmax(0, 1fr); grid-template-rows: auto auto minmax(0, 1fr); column-gap: 16px; row-gap: 0 }
+.top { grid-row: 1; grid-column: 1 / -1; flex-wrap: nowrap; padding: 10px 18px; margin-bottom: 12px; background: var(--bg); border: 0; border-radius: 20px; box-shadow: var(--shadow) }
+.brand { color: var(--ink); white-space: nowrap; font-size: 1.05rem }
+.logo { width: 44px; height: 44px }
+#installMsg { grid-row: 2; grid-column: 1 / -1; padding: 0 6px 10px }
+.page-tabs { display: none }
+.map-page, .flow-page { grid-row: 3 }
+.page { min-width: 0; min-height: 0; height: 100%; overflow-y: auto; display: grid; gap: 18px; padding: 20px 24px 28px; background: var(--bg); border-radius: 24px; box-shadow: var(--shadow); align-content: start }
 
-/* 넘어가는 장: 내용은 돌리지 않고 이전 화면의 복사본만 돌려 연결선 위치를 지킨다 */
-.flow-page.leaf { position: absolute; inset: 0; z-index: 5; background: var(--bg); overflow: hidden; pointer-events: none; backface-visibility: hidden; animation: .6s ease-in-out forwards }
-.leaf::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(11, 21, 38, .3)); animation: shade .6s ease-in forwards }
+/* 진행 단계 목록: 항상 표시 */
+.steps { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; min-width: 0; flex: 1 }
+.steps li { display: flex; align-items: center; gap: 5px; padding: 4px 9px 4px 4px; border-radius: 999px; font-size: .74rem; font-weight: 600; color: var(--muted); white-space: nowrap }
+.steps li b { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--panel); color: var(--muted); font-size: .72rem; font-variant-numeric: tabular-nums }
+.steps li.done b { background: var(--fill); color: var(--ink) }
+.steps li[aria-current="step"] { background: var(--accent); color: var(--on-accent) }
+.steps li[aria-current="step"] b { background: var(--on-accent); color: var(--accent) }
+
+/* 1쪽 지도앱: 쪽 높이 전체를 쓴다 */
+.map-page { position: relative; top: auto; align-self: stretch; max-height: none; display: flex; flex-direction: column; gap: 12px; border: 0; padding-top: 16px; padding-bottom: 16px }
+.map-page h1 { font-size: 1.2rem; flex: 1 1 auto }
+.map-page #mapHead { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px }
+.map-page #mapHead .help { order: 3; flex-basis: 100%; font-size: .8rem; line-height: 1.45 }
+.map-page #mapHead .actions { gap: 6px }
+.map-page .main-btn, .map-page .line-btn { min-height: 44px; padding: 4px 14px; font-size: .86rem }
+#stage { flex: 1 0 auto; min-height: 0; grid-template-rows: auto auto minmax(56px, 1fr) auto auto; gap: 12px; padding: 12px 14px; border-radius: 20px; background: linear-gradient(180deg, var(--panel), var(--mint)) }
+.hub { align-self: center; border-radius: 999px; padding: 6px 22px; box-shadow: var(--shadow) }
+.hub strong { font-size: 1.15rem }
+.job { padding: 7px 9px } .job b { font-size: .84rem; line-height: 1.28 } .job small { font-size: .74rem }
+.skill { min-height: 52px; padding: 5px 4px }
+.jobs.all .job { grid-template-columns: auto minmax(0, 1fr); align-items: baseline; column-gap: 6px }
+#mapInfo .total { font-size: 1.4rem }
+.gate { gap: 4px 5px }
+.job, .skill, .side, .opt, .score, .chip, .conds label, .study label, .info-box { border-radius: 16px }
+.skill { border-color: var(--wire) }
+.chip { border-radius: 999px; padding: 4px 11px; min-height: 36px; font-size: .76rem }
+.chip:disabled { cursor: not-allowed; border-style: dashed }
+.chip:disabled:not([aria-pressed="true"]) { color: var(--muted) }
+.gate > b { background: none; padding: 2px 4px; font-size: .8rem }
+.info-box { flex: none; min-height: 56px; padding: 8px 14px; gap: 2px; font-size: .9rem; background: var(--panel); border: 2px dashed var(--wire) }
+.info-box.empty { color: var(--muted); align-content: center }
+#mapInfo { grid-template-columns: auto auto minmax(0, 1fr); align-items: center; gap: 12px; flex: none }
+#mapInfo .note { grid-column: 1 / -1 }
+
+/* 2쪽 답변 */
+.flow-page { position: relative; background: var(--bg) }
+.cover-head { display: grid; gap: 12px; background: linear-gradient(135deg, var(--sky), var(--mint)); color: var(--ink); padding: 26px; border-radius: 22px; border: 0 }
+.cover-head .help { color: var(--muted) }
+.track { height: 10px; border-radius: 5px }
+.track i, .bar i { background: var(--bright) }
+input[type="text"], textarea, select { border-radius: 14px }
+.verdict { border-radius: 18px }
+.card { border: 2px solid var(--wire); border-top: 6px solid var(--bright); border-radius: 20px; padding: 24px }
+.card .who, .card h3, .card dt, .verdict strong, .total, .done-note, .table-wrap tr.mine td { color: var(--gold) }
+.card h2.main { font-size: 1.5rem }
+.nav button, .main-btn, .line-btn, .small-btn { border-radius: 16px }
+.nav { position: sticky; bottom: -28px; z-index: 2; padding: 12px 0 14px; background: var(--bg); border-top: 2px solid var(--panel) }
+/* 넘어가는 장: 내용은 돌리지 않고 이전 화면의 복사본만 돌려 연결선 위치를 지킨다 (기존 동작 유지) */
+.flow-page.leaf { position: absolute; inset: 0; z-index: 5; height: auto; background: var(--bg); border-radius: 24px; overflow: hidden; pointer-events: none; backface-visibility: hidden; animation: .6s ease-in-out forwards }
+.leaf::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(30, 80, 110, .18)); animation: shade .6s ease-in forwards }
 .leaf.fwd { transform-origin: left center; animation-name: turn-fwd }
 .leaf.rev { transform-origin: right center; animation-name: turn-rev }
 @keyframes turn-fwd { from { transform: perspective(1800px) rotateY(0) } to { transform: perspective(1800px) rotateY(-180deg) } }
 @keyframes turn-rev { from { transform: perspective(1800px) rotateY(0) } to { transform: perspective(1800px) rotateY(180deg) } }
 @keyframes shade { from { opacity: 0 } to { opacity: 1 } }
 
-/* 펼친 책: 왼쪽 1쪽은 고정 지도, 오른쪽 2쪽은 10단계 진행 */
-.app { max-width: 1360px; padding: 0; gap: 0; grid-template-columns: minmax(0, 1.08fr) minmax(0, 1fr) }
-.top, #installMsg, .page-tabs { grid-column: 1 / -1 }
-.top { padding: 14px 30px; border-bottom: 1px solid var(--wire) }
-#installMsg { padding: 10px 30px 0 }
-.page-tabs { display: none }
-.page { min-width: 0; padding: 24px 30px 34px; display: grid; gap: 18px; align-content: start }
-.map-page { position: sticky; top: 8px; align-self: start; max-height: calc(100vh - 16px); overflow-y: auto; border-right: 1px solid var(--wire);
-  background: linear-gradient(90deg, transparent 93%, rgba(11, 21, 38, .1)) }
-.flow-page { position: relative; background: linear-gradient(270deg, transparent 95%, rgba(11, 21, 38, .08)) }
-.map-page h1 { font-size: 1.35rem }
-.map-page { gap: 12px; padding-top: 16px; padding-bottom: 16px }
-.map-page .main-btn, .map-page .line-btn { min-height: 46px; padding: 4px 14px }
-#stage { gap: 22px }
-#mapInfo { grid-template-columns: auto auto minmax(0, 1fr); align-items: center; gap: 12px }
-#mapInfo .note { grid-column: 1 / -1 }
 @media (max-width: 1199px) {
-  .page, .top { padding-left: 18px; padding-right: 18px }
+  .page { padding-left: 18px; padding-right: 18px }
   .jobs.all { grid-template-columns: repeat(3, minmax(0, 1fr)) }
+  .steps li span { display: none }
+  .steps li { padding-right: 4px }
 }
+/* 좁은 화면: 위아래로 이어서 보여 준다 (지도 고정 없음, 두 쪽 모두 표시) */
 @media (max-width: 899px) {
-  .app { grid-template-columns: minmax(0, 1fr) }
-  .page-tabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding: 12px 30px 0 }
-  .app.both .page-tabs { display: none }
-  .map-page { position: static; max-height: none; border-right: 0; background: none }
-  .app:not(.both)[data-page="flow"] .map-page, .app:not(.both)[data-page="map"] .flow-page { display: none }
+  .app { height: auto; grid-template-columns: minmax(0, 1fr); grid-template-rows: none; row-gap: 12px }
+  .top, #installMsg, .map-page, .flow-page { grid-row: auto }
+  .top { flex-wrap: wrap; margin-bottom: 0 }
+  .steps { order: 3; flex-basis: 100% }
+  .page { height: auto; overflow: visible }
+  .map-page { position: static; display: flex }
+  .page-tabs, .app.both .page-tabs { display: none }
+  .app:not(.both)[data-page="flow"] .map-page, .app:not(.both)[data-page="map"] .flow-page { display: flex }
+  .app:not(.both)[data-page="map"] .flow-page { display: grid }
+  #stage { min-height: 0 }
+  .nav { position: static; padding: 0; background: none }
 }
-
 @media (max-width: 620px) {
-  .app { border-left-width: 7px }
-  .top, .page { padding-left: 14px; padding-right: 14px }
-  .page-tabs { padding-left: 14px; padding-right: 14px }
+  .page { padding-left: 14px; padding-right: 14px }
   .cover-head { padding: 20px 16px }
   .card { padding: 16px }
   h1 { font-size: 1.5rem }
@@ -244,6 +284,7 @@ h1, h2, .brand, #stepText, .verdict strong, .hub strong { font-family: var(--ser
 <main class="app" data-page="flow">
   <div class="top">
     <span class="brand"><svg class="logo" aria-hidden="true"><use href="#logoMark"></use></svg>AI다음행보 <small class="ver">v1.7</small></span>
+    <ol class="steps" id="stepList" aria-label="진행 단계"></ol>
     <div class="top-actions">
       <button class="small-btn" id="installBtn" type="button" hidden>PC 설치 파일 받기</button>
       <button class="small-btn" id="mapBtn" type="button" hidden>전체 지도</button>
@@ -273,7 +314,7 @@ h1, h2, .brand, #stepText, .verdict strong, .hub strong { font-family: var(--ser
       <div class="gate minus" id="minusGate"></div>
       <div class="skills" id="skills"></div>
     </div>
-    <div class="info-box" id="info" aria-live="polite" hidden></div>
+    <div class="info-box empty" id="info" aria-live="polite"></div>
     <section class="step" id="mapInfo">
       <h2>쌓인 디지털 경험자산</h2>
       <div class="total" id="mapTotal"></div>
@@ -637,8 +678,15 @@ let jobWire = {}, skillWire = {}, flowing = 0;
 let full = false, mapRun = 0, mapPlaying = false;
 const picked = new Set(), arrived = SKILLS.map(() => new Set());
 
+function fitMap() {
+  const mp = document.querySelector('.map-page');
+  stage.style.zoom = '';
+  const over = mp.scrollHeight - mp.clientHeight;
+  if (over > 0 && getComputedStyle(mp).overflowY !== 'visible') { const h = stage.offsetHeight; stage.style.zoom = Math.max(.75, (h - over) / h).toFixed(3); }
+}
 function drawWires() {
   if (stage.hidden) return;
+  fitMap();
   const b = stage.getBoundingClientRect(), h = hub.getBoundingClientRect();
   wires.setAttribute('viewBox', `0 0 ${b.width} ${b.height}`);
   wires.replaceChildren(); jobWire = {}; skillWire = {};
@@ -720,7 +768,14 @@ async function playMap() {
   if (run === mapRun) { mapPlaying = false; paintFull(); }
 }
 
-function showInfo(html) { $('info').innerHTML = html; $('info').hidden = false; }
+function showInfo(html) { $('info').innerHTML = html; $('info').classList.remove('empty'); }
+// 설명 상자는 항상 보이고, 누르기 전에는 안내 문구를 둔다
+function clearInfo() { $('info').textContent = '직업 칸이나 역량 칸을 누르면 설명이 여기에 나옵니다. 도움·돌발 버튼은 8단계에서 누를 수 있습니다.'; $('info').classList.add('empty'); }
+// 진행 단계 목록 (항상 표시)
+const STEP_NAMES = ['시작', '경력', '경험', '일하는 방식', '해 볼 일', '자가진단', '적용 조건', '도움·돌발', '역할 다듬기', '내 카드'];
+function stepList() {
+  $('stepList').innerHTML = STEP_NAMES.map((n, i) => `<li class="${i < S.step ? 'done' : ''}"${i === S.step ? ' aria-current="step"' : ''}><b>${i + 1}</b><span>${n}</span></li>`).join('');
+}
 
 function paint(filled = true) {
   if (full) return paintFull();
@@ -740,7 +795,7 @@ function paint(filled = true) {
     skillWire[k]?.classList.toggle('on', Boolean(filled && r));
     skillWire[k]?.classList.toggle('cut', cuts.includes(k));
   });
-  $('hubText').textContent = S.step === 7 ? LEVELS[finalLevel()].t : S.choice !== null ? '배울 것 ' + rows.length + '가지' : '앞으로 해 볼 일을 고르세요';
+  $('hubText').textContent = S.step === 7 || S.step === LAST ? LEVELS[finalLevel()].t : S.choice !== null ? '배울 것 ' + rows.length + '가지' : '앞으로 해 볼 일을 고르세요';
 }
 
 async function chooseJob(j) {
@@ -843,6 +898,8 @@ const ENTER = {
     $('study').innerHTML = rows.map(r => `<li><label for="done${r.k}"><input type="checkbox" id="done${r.k}" data-done="${r.k}" ${has(S.done, r.k) ? 'checked' : ''}><b>${SKILLS[r.k]}</b><span>${r.pct}%</span></label></li>`).join('');
     $('prompt').value = `제 목표 역할: ${m.role}\n맥락: ${m.context}\n목표: ${m.aim}\n만들 결과물: ${m.form}\n지켜야 할 조건: ${m.rule}\n${chosen.length ? `일하는 방식: ${chosen.map(p => p.t).join(', ')}\n` : ''}답할 때는 현장 사례를 먼저 들고, 확실하지 않은 내용은 '확인 필요'로 표시해 주세요. 제 생각과 다른 의견이 있으면 근거와 함께 알려 주세요.`;
     $('copyMsg').textContent = '';
+    // 결론을 1쪽 지도앱에도 표시한다 (2쪽 카드와 같은 값)
+    showInfo(`<b>결론 · ${v.t}</b><p><b>${esc(identity(rows))}</b></p><p class="help">목표 역할: ${esc(m.role)} · 먼저 배울 것: ${rows.slice(0, 2).map(r => SKILLS[r.k]).join(', ')}</p>`);
   }
 };
 
@@ -889,7 +946,10 @@ function pageLeaf() {
 // 왼쪽 지도: 4단계 전에는 7개 직업을 쌓아 보고, 그 뒤에는 내 진단 결과를 보여 준다.
 function mapView() {
   const vars = !full && S.step === 7;
-  $('plusGate').hidden = $('minusGate').hidden = !vars;
+  // 도움·돌발 버튼은 항상 보이고, 누를 수 있는 것은 8단계에서만이다
+  ['plusGate', 'minusGate'].forEach(id => { $(id).classList.toggle('off', !vars); $(id).querySelectorAll('.chip').forEach(c => { c.disabled = !vars; c.title = vars ? '' : '8단계에서 누를 수 있습니다'; }); });
+  pressed('[data-plus]', b => has(S.plus, Number(b.dataset.plus)));
+  pressed('[data-minus]', b => has(S.minus, Number(b.dataset.minus)));
   $('mapInfo').hidden = !full;
   $('mapClose').hidden = !full || S.step < 4;
   $('jobs').classList.toggle('all', full);
@@ -909,13 +969,16 @@ $('pageMap').addEventListener('click', () => setPage('map'));
 $('pageFlow').addEventListener('click', () => setPage('flow'));
 
 function show() {
-  const leaf = pageLeaf(), top = scrollY;
+  // 2쪽은 쪽 안에서 스크롤된다 (좁은 화면에서는 창 전체가 스크롤된다)
+  const flowPage = document.querySelector('.flow-page:not(.leaf)'), inner = flowPage.scrollHeight > flowPage.clientHeight && getComputedStyle(flowPage).overflowY !== 'visible';
+  const leaf = pageLeaf(), top = inner ? flowPage.scrollTop : scrollY;
   mapRun++; mapPlaying = false;
   full = S.step < 4;
   document.querySelectorAll('[data-step]').forEach(s => { s.hidden = Number(s.dataset.step) !== S.step; });
   document.querySelector('.app').classList.toggle('both', S.step === 4 || S.step === 7);
   $('liveVerdict').hidden = S.step !== 7;
-  $('info').hidden = true;
+  clearInfo();
+  stepList();
   pressed('.skill', () => false);
   $('stepText').textContent = `제 ${S.step + 1}장 · ${S.step + 1} / ${LAST + 1}단계`;
   $('stepBar').style.width = (S.step + 1) / (LAST + 1) * 100 + '%';
@@ -932,6 +995,7 @@ function show() {
     leaf.scrollTop = top;
     setTimeout(() => leaf.remove(), 650);
   }
+  flowPage.scrollTop = 0;
   scrollTo(0, 0);
 }
 
