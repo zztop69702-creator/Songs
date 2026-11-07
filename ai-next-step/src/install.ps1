@@ -12,14 +12,14 @@ $record = Join-Path $data 'install_path.txt'
 $previous = if (Test-Path -LiteralPath $record) { [IO.File]::ReadAllText($record).Trim() } else { $data }
 
 Add-Type -AssemblyName System.Windows.Forms
-$dialog = New-Object Windows.Forms.FolderBrowserDialog
-$dialog.Description = "$name 앱을 설치할 폴더를 고르세요. 고른 폴더 안에 '$name' 폴더가 만들어집니다."
-$dialog.SelectedPath = Split-Path $previous -Parent
-$owner = New-Object Windows.Forms.Form
-$owner.TopMost = $true
-if ($dialog.ShowDialog($owner) -ne [Windows.Forms.DialogResult]::OK) { Write-Host '설치를 취소했습니다.'; return }
-$picked = $dialog.SelectedPath
-$dir = if ((Split-Path $picked -Leaf) -eq $name) { $picked } else { Join-Path $picked $name }
+# 묻지 않고 자동 설치: 설치 파일을 둔 폴더(사용자가 저장한 곳) 안에 '$name' 폴더를 만든다.
+# ZIP 안에서 바로 실행해 임시 폴더에 있으면 기본 위치(LOCALAPPDATA)에 설치한다
+$here = Split-Path -Parent $env:SELF
+$temp = [IO.Path]::GetTempPath().TrimEnd('\')
+# 임시 폴더 경로가 짧은 이름(8.3)으로 올 수도 있어 폴더 이름으로도 확인한다
+$inTemp = $here.StartsWith($temp, [StringComparison]::OrdinalIgnoreCase) -or $here -match '\\AppData\\Local\\Temp(\\|$)' -or $here -match '\\Temp\d*_[^\\]*\.zip'
+$base = if ($inTemp) { $env:LOCALAPPDATA } else { $here }
+$dir = if ((Split-Path $base -Leaf) -eq $name) { $base } else { Join-Path $base $name }
 
 New-Item -ItemType Directory -Force $dir, $data | Out-Null
 $html = Join-Path $dir "${name}_$ver.html"
@@ -31,6 +31,7 @@ Get-ChildItem -LiteralPath $previous, $dir -Filter "${name}_v*.html" -ErrorActio
 # 이전 이름의 앱 파일, 아이콘, 바로가기를 정리한다. 입력값은 저장 폴더의 프로필에 있어 지워지지 않는다
 Get-ChildItem -LiteralPath $previous, $dir -Filter "${oldName}_v*.html" -ErrorAction SilentlyContinue | Remove-Item -Force
 Remove-Item -LiteralPath (Join-Path $previous "$oldName.ico") -Force -ErrorAction SilentlyContinue
+if ($previous -ne $dir) { Remove-Item -LiteralPath (Join-Path $previous "$name.ico") -Force -ErrorAction SilentlyContinue }
 if ($previous -ne $data -and $previous -ne $dir -and (Test-Path -LiteralPath $previous) -and -not (Get-ChildItem -LiteralPath $previous -Force)) { Remove-Item -LiteralPath $previous -Force }
 [IO.File]::WriteAllText($record, $dir)
 
