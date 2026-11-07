@@ -1,11 +1,13 @@
 $ErrorActionPreference = 'Stop'
-$name = 'AI다음행보'
-$ver = 'v1.7'
+$name = '경험곱하기AI'
+$ver = 'v1.8'
+# 이전 이름. 저장 폴더(입력값이 들어 있는 브라우저 프로필)는 이 이름을 그대로 써서 입력값을 지킨다
+$oldName = 'AI다음행보'
 $text = [IO.File]::ReadAllText($env:SELF)
 function Block($tag) { [Convert]::FromBase64String([regex]::Match($text, "$tag\r?\n([A-Za-z0-9+/=]+)").Groups[1].Value) }
 
 # 앱 위치가 바뀌어도 입력값이 남도록 프로필과 위치 기록은 항상 이 폴더에 둔다
-$data = Join-Path $env:LOCALAPPDATA $name
+$data = Join-Path $env:LOCALAPPDATA $oldName
 $record = Join-Path $data 'install_path.txt'
 $previous = if (Test-Path -LiteralPath $record) { [IO.File]::ReadAllText($record).Trim() } else { $data }
 
@@ -26,6 +28,10 @@ $ico = Join-Path $dir "$name.ico"
 [IO.File]::WriteAllBytes($ico, (Block '__ICO__'))
 # 새 파일을 쓴 뒤에 지워서, 쓰기에 실패해도 이전 앱이 남게 한다
 Get-ChildItem -LiteralPath $previous, $dir -Filter "${name}_v*.html" -ErrorAction SilentlyContinue | Where-Object { $_.FullName -ne $html } | Remove-Item -Force
+# 이전 이름의 앱 파일, 아이콘, 바로가기를 정리한다. 입력값은 저장 폴더의 프로필에 있어 지워지지 않는다
+Get-ChildItem -LiteralPath $previous, $dir -Filter "${oldName}_v*.html" -ErrorAction SilentlyContinue | Remove-Item -Force
+Remove-Item -LiteralPath (Join-Path $previous "$oldName.ico") -Force -ErrorAction SilentlyContinue
+if ($previous -ne $data -and $previous -ne $dir -and (Test-Path -LiteralPath $previous) -and -not (Get-ChildItem -LiteralPath $previous -Force)) { Remove-Item -LiteralPath $previous -Force }
 [IO.File]::WriteAllText($record, $dir)
 
 $browsers = @(
@@ -39,6 +45,7 @@ $url = ([Uri]$html).AbsoluteUri
 
 $shell = New-Object -ComObject WScript.Shell
 $folders = @([Environment]::GetFolderPath('Desktop'), [Environment]::GetFolderPath('Programs'))
+foreach ($folder in $folders) { Remove-Item -LiteralPath (Join-Path $folder "$oldName.lnk") -Force -ErrorAction SilentlyContinue }
 foreach ($folder in $folders) {
   $link = $shell.CreateShortcut((Join-Path $folder "$name.lnk"))
   # 평소 쓰는 브라우저 설정과 분리된 전용 프로필로 앱 창을 연다

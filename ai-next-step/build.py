@@ -8,7 +8,7 @@ import pathlib
 import sys
 import zipfile
 
-NAME, VER = 'AI다음행보', 'v1.7'
+NAME, VER = '경험곱하기AI', 'v1.8'
 HERE = pathlib.Path(__file__).resolve().parent
 SRC = HERE / 'src'
 

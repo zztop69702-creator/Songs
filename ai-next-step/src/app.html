@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>AI다음행보</title>
+<title>경험곱하기AI</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <style>
 /* Layout: 50~60대가 한 화면에 한 가지만 답하는 10단계 진행. 큰 글씨와 큰 버튼을 기본으로 한다. */
@@ -273,17 +273,15 @@ input[type="text"], textarea, select { border-radius: 14px }
 </style>
 
 </head><body>
-<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="logoMark" viewBox="0 0 150 150">
-  <rect width="150" height="150" rx="34" fill="#e6f0e3"/>
-  <path fill-rule="evenodd" fill="#17261c" d="M16 72 L33 24 H47 L64 72 H51 L48 63 H32 L29 72 Z M35.500 52 H44.500 L40 38 Z"/>
-  <rect x="70" y="24" width="13" height="48" fill="#17261c"/>
-  <circle cx="30" cy="122" r="10" fill="#1b8047"/><circle cx="58" cy="108" r="10" fill="#1b8047"/><circle cx="84" cy="88" r="10" fill="#1b8047"/>
-  <path d="M100 72 L122 48" fill="none" stroke="#cf3c22" stroke-width="10" stroke-linecap="round"/>
-  <path d="M100 40 L130 40 L130 70" fill="none" stroke="#cf3c22" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="logoMark" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="15" fill="#ea580c"/>
+  <path d="M10 25 L22 37 M22 25 L10 37" stroke="#ffedd5" stroke-width="4.5" stroke-linecap="round"/>
+  <path fill="#fff" d="M25 43 L32 19 H39 L46 43 H40 L38.6 38 H32.4 L31 43 Z M33.8 33 H37.2 L35.5 26.5 Z"/>
+  <rect x="48" y="19" width="6" height="24" rx="1" fill="#fff"/>
 </symbol></svg>
 <main class="app" data-page="flow">
   <div class="top">
-    <span class="brand"><svg class="logo" aria-hidden="true"><use href="#logoMark"></use></svg>AI다음행보 <small class="ver">v1.7</small></span>
+    <span class="brand"><svg class="logo" aria-hidden="true"><use href="#logoMark"></use></svg>경험곱하기AI <small class="ver">v1.8</small></span>
     <ol class="steps" id="stepList" aria-label="진행 단계"></ol>
     <div class="top-actions">
       <button class="small-btn" id="installBtn" type="button" hidden>PC 설치 파일 받기</button>
@@ -327,7 +325,7 @@ input[type="text"], textarea, select { border-radius: 14px }
 
   <section class="step" data-step="0">
     <div class="cover-head">
-      <svg class="logo large" role="img" aria-label="AI다음행보 아이콘"><use href="#logoMark"></use></svg>
+      <svg class="logo large" role="img" aria-label="경험곱하기AI 아이콘"><use href="#logoMark"></use></svg>
       <h1>30년 경험, AI 시대에 어떻게 쓸 수 있을까요?</h1>
       <p class="help">몇 가지 질문에 답하면 내 경력에 맞는 다음 역할, 배울 것, 돌발 상황 대비책을 카드로 만들어 드립니다.</p>
     </div>
@@ -1127,7 +1125,7 @@ if (zipText && window.claude?.use) claude.use('downloads').then(downloads => {
     const say = t => { $('installMsg').textContent = t; $('installMsg').hidden = false; };
     const bytes = Uint8Array.from(atob(zipText), c => c.charCodeAt(0));
     try {
-      await downloads.save({ filename: `AI다음행보_${document.querySelector('.ver').textContent}_설치.zip`, data: bytes });
+      await downloads.save({ filename: `경험곱하기AI_${document.querySelector('.ver').textContent}_설치.zip`, data: bytes });
       say('받은 ZIP 파일을 열고 안의 설치 파일을 더블클릭하세요. 바탕화면에 아이콘이 생기고 앱이 실행됩니다.');
     } catch (e) {
       if (e.code !== 'declined') say('이 화면에서는 파일을 받을 수 없습니다. 잠시 후 다시 눌러 주세요.');
