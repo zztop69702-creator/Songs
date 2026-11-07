@@ -375,7 +375,9 @@ input[type="text"], textarea, select { border-radius: 14px }
   .job b { font-size: .82rem }
   .skill b { font-size: .76rem }
 }
-@media (prefers-reduced-motion: reduce) { .src .bin, #wires circle.col, #dream.new { animation: none } .skill i, .track i { transition: none } .hub.pulse, #stage.complete .hub, #wires path.on:not(.cut) { animation: none } #wires path.on:not(.cut) { stroke-dasharray: none } }
+:root.motion-off .src .bin, :root.motion-off #wires circle.col, :root.motion-off #dream.new, :root.motion-off .hub.pulse, :root.motion-off #stage.complete .hub, :root.motion-off #wires path.on:not(.cut) { animation: none }
+:root.motion-off .skill i, :root.motion-off .track i { transition: none }
+:root.motion-off #wires path.on:not(.cut) { stroke-dasharray: none }
 </style>
 
 </head><body>
@@ -406,6 +408,7 @@ input[type="text"], textarea, select { border-radius: 14px }
       <div class="actions">
         <button class="main-btn" id="mapPlay" type="button">1~30 차례로 쌓기</button>
         <button class="line-btn" id="mapReset" type="button">지도 비우기</button>
+        <button class="line-btn" id="motionBtn" type="button" aria-pressed="true">움직임 끄기</button>
         <button class="line-btn" id="mapClose" type="button" hidden>내 지도로</button>
       </div>
     </section>
@@ -504,7 +507,7 @@ input[type="text"], textarea, select { border-radius: 14px }
 
   <section class="step" data-step="7">
     <h1>도움과 돌발 상황을 넣어 보세요</h1>
-    <p class="help">지도의 위쪽은 도움이 되는 일, 아래쪽은 돌발 상황입니다. 누를 때마다 결과가 달라집니다. 없으면 그냥 넘어가도 됩니다.</p>
+    <p class="help">1쪽 지도 아래의 '도움이 되는 일'과 '돌발 상황'을 눌러 보세요. 누를 때마다 결과가 달라지며, 다른 단계에서도 언제든 누를 수 있습니다. 없으면 그냥 넘어가도 됩니다.</p>
   </section>
 
   <div class="verdict" id="liveVerdict" aria-live="polite" hidden></div>
@@ -906,6 +909,16 @@ $('fiveFields').innerHTML = FIVE.map(([k, n, h]) => `<label class="field">${n} �
 
 const stage = $('stage'), wires = $('wires'), hub = $('hub'), NS = 'http://www.w3.org/2000/svg';
 const calm = matchMedia('(prefers-reduced-motion: reduce)');
+// 움직임: 'on'/'off' 를 사용자가 고르면 그대로, 고르지 않으면 컴퓨터의 움직임 줄이기 설정을 따른다
+let motionPref = null;
+try { motionPref = localStorage.getItem('experience-ai-motion'); } catch { /* 저장이 막혀도 기본값 */ }
+const still = () => motionPref === 'off' || (motionPref !== 'on' && calm.matches);
+function motionView() {
+  document.documentElement.classList.toggle('motion-on', !still());
+  document.documentElement.classList.toggle('motion-off', still());
+  $('motionBtn').textContent = still() ? '움직임 켜기' : '움직임 끄기';
+  $('motionBtn').setAttribute('aria-pressed', String(!still()));
+}
 let jobWire = {}, skillWire = {}, pairWire = [], flowing = 0;
 // 출발점(목표 1~3순위, 없으면 관심 전문가) 색: 청록·자홍·금색
 const SLOT_C = ['g1', 'g2', 'g3'], SLOT_HEX = { g1: '#22d3ee', g2: '#e879f9', g3: '#fbbf24' };
@@ -977,7 +990,7 @@ function drawWires() {
 const pairsOf = (j, ks) => pairWire.filter(p => Number(p.dataset.j) === j && (!ks || ks.includes(Number(p.dataset.k))));
 
 function fly(path, tick = false) {
-  if (calm.matches || !path) return Promise.resolve();
+  if (still() || !path) return Promise.resolve();
   const dot = document.createElementNS(NS, 'circle'), len = path.getTotalLength(), t0 = performance.now(), ms = tick ? 1500 : 900;
   dot.setAttribute('r', tick ? 3.5 : 6); if (tick) dot.setAttribute('class', `tick ${path.dataset.c || ''}`); wires.append(dot);
   return new Promise(done => {
@@ -1044,14 +1057,14 @@ async function playMap() {
   for (let j = 0; j < JOBS.length; j++) {
     if (run !== mapRun) return;
     await addMapJob(j);
-    await new Promise(r => setTimeout(r, calm.matches ? 150 : 300));
+    await new Promise(r => setTimeout(r, still() ? 150 : 300));
   }
   if (run === mapRun) { mapPlaying = false; paintFull(); }
 }
 
 function showInfo(html) { $('info').innerHTML = html; $('info').classList.remove('empty'); }
 // 설명 상자는 항상 보이고, 누르기 전에는 안내 문구를 둔다
-function clearInfo() { $('info').textContent = '칸을 누르면 설명이 나옵니다. ★ 경력 추천 순위 · ☆ 추가 추천 · 도움·돌발은 8단계에서 선택'; $('info').classList.add('empty'); }
+function clearInfo() { $('info').textContent = '칸을 누르면 설명이 나옵니다. ★ 경력 추천 순위 · ☆ 추가 추천 · 도움·돌발은 언제든 눌러 조건을 더할 수 있습니다'; $('info').classList.add('empty'); }
 // 진행 단계 목록 (항상 표시)
 const STEP_NAMES = ['시작', '경력', '경험', '일하는 방식', '해 볼 일', '자가진단', '적용 조건', '도움·돌발', '역할 다듬기', '내 카드'];
 function stepList() {
@@ -1126,7 +1139,7 @@ function paint(filled = true) {
 let replaying = 0;
 async function playConclusion() {
   if (full) return;
-  const run = ++flowing, wait = ms => new Promise(r => setTimeout(r, calm.matches ? 0 : ms));
+  const run = ++flowing, wait = ms => new Promise(r => setTimeout(r, still() ? 0 : ms));
   replaying = run; lastFlow = Date.now();
   drawWires(); paint(false);
   const chips = [...document.querySelectorAll('#condChips i')], lit = chips.filter(c => c.classList.contains('on'));
@@ -1294,7 +1307,7 @@ function pageLeaf() {
   document.querySelector('.leaf')?.remove();
   const was = view, now = S.step;
   view = now;
-  if (was === null || was === now || matchMedia('(prefers-reduced-motion: reduce)').matches) return null;
+  if (was === null || was === now || still()) return null;
   const page = document.querySelector('.flow-page'), leaf = page.cloneNode(true);
   const fields = page.querySelectorAll('input, textarea, select');
   leaf.querySelectorAll('input, textarea, select').forEach((f, i) => { f.value = fields[i].value; });
@@ -1306,9 +1319,9 @@ function pageLeaf() {
 
 // 왼쪽 지도: 늘 전문가 30명 표. 2쪽 답이 쌓일수록 조건이 더해진다. '차례로 쌓기'는 따로 보는 전체 지도다.
 function mapView() {
-  const vars = !full && S.step === 7;
-  // 도움·돌발 버튼은 항상 보이고, 누를 수 있는 것은 8단계에서만이다
-  ['plusGate', 'minusGate'].forEach(id => { $(id).classList.toggle('off', !vars); $(id).querySelectorAll('.chip').forEach(c => { c.disabled = !vars; c.title = vars ? '' : '8단계에서 누를 수 있습니다'; }); });
+  const vars = !full;
+  // 도움·돌발 버튼은 항상 보이고 어느 단계에서든 누를 수 있다 (전체 지도 보기 중에만 잠근다)
+  ['plusGate', 'minusGate'].forEach(id => { $(id).classList.toggle('off', !vars); $(id).querySelectorAll('.chip').forEach(c => { c.disabled = !vars; c.title = vars ? '' : '전체 지도 보기에서는 누를 수 없습니다'; }); });
   pressed('[data-plus]', b => has(S.plus, Number(b.dataset.plus)));
   pressed('[data-minus]', b => has(S.minus, Number(b.dataset.minus)));
   $('demoInfo').hidden = !full;
@@ -1398,7 +1411,32 @@ $('copyPrompt2').addEventListener('click', () => copy($('prompt').value, '지침
 $('mapClose').addEventListener('click', () => { mapRun++; mapPlaying = false; full = false; mapView(); });
 $('cardMap').addEventListener('click', () => { freeMap(); setPage('map'); });
 // 내 지도에서는 고른 전문가를 비우고, 전체 지도에서는 쌓은 것을 비운다
-$('mapReset').addEventListener('click', () => { if (full) clearMap(); else { S.picks = []; save(); clearInfo(); if (S.step === 4) ENTER[4](); drawWires(); } });
+// 내 지도: 관심 전문가를 비우고 칸·빛줄기를 0에서 다시 쌓는다. 목표(①②③)는 2쪽 5단계 답이라 남아서 다시 이어진다
+async function rebuildMap() {
+  const run = ++flowing, wait = ms => new Promise(r => setTimeout(r, still() ? 0 : ms));
+  lastFlow = Date.now(); replaying = run;
+  drawWires(); paint(false);
+  const done = () => { if (replaying === run) replaying = 0; };
+  await wait(500);
+  const ks = rowsNow().map(r => r.k);
+  for (const j of sourceList()) { await Promise.all(pairsOf(j, ks).map(q => fly(q))); if (run !== flowing) return done(); }
+  done();
+  if (run === flowing) paint();
+}
+$('mapReset').addEventListener('click', () => {
+  if (full) { clearMap(); return; }
+  const had = S.picks.length;
+  S.picks = []; save(); if (S.step === 4) ENTER[4]();
+  showInfo(S.goals.length
+    ? `<b>${had ? '관심 전문가를 비웠습니다.' : '비울 관심 전문가가 없습니다.'}</b> ①②③ 목표는 2쪽 5단계 답이라 남아 다시 이어집니다. 목표를 바꾸려면 5단계에서 다시 누르세요.`
+    : '<b>지도를 비웠습니다.</b> 관심 전문가를 다시 누르면 새로 이어집니다.');
+  rebuildMap();
+});
+$('motionBtn').addEventListener('click', () => {
+  motionPref = still() ? 'on' : 'off';
+  try { localStorage.setItem('experience-ai-motion', motionPref); } catch { /* 기억하지 못해도 이번 화면에는 적용 */ }
+  motionView(); drawWires();
+});
 $('mapPlay').addEventListener('click', () => { freeMap(); playMap(); });
 $('exp').addEventListener('input', e => { S.exp = e.target.value; save(); });
 $('statusChoices').addEventListener('click', e => {
@@ -1439,7 +1477,7 @@ $('jobs').addEventListener('click', e => {
   if (S.picks.includes(j)) { S.picks = S.picks.filter(x => x !== j); showInfo(jobInfo(j)); save(); if (S.step === 4) ENTER[4](); drawWires(); return; }
   if (S.picks.length >= 3) { showInfo(`<b>최대 3명까지 고를 수 있습니다.</b><p>이미 고른 전문가(${S.picks.map(x => NUM[x]).join(', ')}번)를 다시 눌러 빼고 고르세요.</p>`); return; }
   S.picks = [...S.picks, j]; save();
-  showInfo(jobInfo(j));
+  showInfo(jobInfo(j) + (S.choice !== null ? '<p class="help">1쪽 빛줄기에 더했습니다. 배울 것과 시간은 1순위 목표 기준이며, 계산에 넣으려면 2쪽 5단계에서 목표로 고르세요.</p>' : ''));
   if (S.step === 4) ENTER[4]();
   flowFrom(j);
 });
@@ -1470,7 +1508,7 @@ $('conds').addEventListener('change', e => {
   S.checks = toggle(S.checks, Number(e.target.dataset.cond));
   $('verdict').innerHTML = verdictHtml(); save();
 });
-function changed() { pressed('[data-plus]', b => has(S.plus, Number(b.dataset.plus))); pressed('[data-minus]', b => has(S.minus, Number(b.dataset.minus))); $('liveVerdict').innerHTML = verdictHtml(); paint(); save(); }
+function changed() { pressed('[data-plus]', b => has(S.plus, Number(b.dataset.plus))); pressed('[data-minus]', b => has(S.minus, Number(b.dataset.minus))); $('liveVerdict').innerHTML = verdictHtml(); if (S.step === 6 || S.step === LAST) ENTER[S.step](); paint(); save(); }
 $('plusGate').addEventListener('click', e => {
   const b = e.target.closest('[data-plus]');
   if (b) { S.plus = toggle(S.plus, Number(b.dataset.plus)); changed(); }
@@ -1523,7 +1561,7 @@ addEventListener('resize', () => { fitScreen(); drawWires(); });
 // (움직임 줄이기 설정, 창이 가려졌을 때, 전체 지도·결론 재생·방금 고른 흐름 중에는 쉰다)
 let lastFlow = 0;
 setInterval(async () => {
-  if (calm.matches || document.hidden || full || replaying || Date.now() - lastFlow < 2500) return;
+  if (still() || document.hidden || full || replaying || Date.now() - lastFlow < 2500) return;
   const ps = pairWire.filter(p => p.classList.contains('on'));
   if (!ps.length) return;
   const twice = p => Promise.all([fly(p, true), new Promise(r => setTimeout(r, 450)).then(() => fly(p, true))]);
@@ -1547,6 +1585,7 @@ if (zipText && window.claude?.use) claude.use('downloads').then(downloads => {
   });
 });
 
+motionView();
 load();
 show();
 </script>
