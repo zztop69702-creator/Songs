@@ -288,6 +288,23 @@ body { margin: 0; background: linear-gradient(135deg, var(--sky), var(--mint)); 
 .skill { border-color: var(--wire) }
 .chip { border-radius: 999px; padding: 3px 8px; min-height: 32px; font-size: .72rem }
 .chip:disabled { cursor: not-allowed; border-style: dashed }
+.pick-mode { order: 4; flex-basis: 100%; display: flex; gap: 6px }
+.pick-mode button { flex: 1 1 0; display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 38px; padding: 3px 10px; border-radius: 999px; border: 1.5px solid #cbd5e1; background: #fff; color: #1e293b; font: inherit; font-size: .82rem; cursor: pointer }
+.pick-mode button em { font-style: normal; font-weight: 800; font-size: .74rem; opacity: .85 }
+.pick-mode button[data-mode="want"][aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent) }
+.pick-mode button[data-mode="have"][aria-pressed="true"] { background: #15803d; border-color: #15803d; color: #fff }
+.src.g4 { background: rgba(167, 139, 250, .16); border-color: #a78bfa; box-shadow: 0 0 14px rgba(167, 139, 250, .55) } .src.g4 .bin { color: #c4b5fd }
+.src.gh { background: rgba(74, 222, 128, .12); border-color: #4ade80; box-shadow: 0 0 12px rgba(74, 222, 128, .45) } .src.gh .bin { color: #86efac }
+#wires path.g4 { color: #a78bfa } #wires path.on.g4 { stroke: #a78bfa } #wires circle.g4 { color: #a78bfa; fill: #ddd6fe }
+#wires path.gh { color: #4ade80 } #wires path.on.gh { stroke: #4ade80 } #wires circle.gh { color: #4ade80; fill: #bbf7d0 }
+#stage.two { grid-template-columns: minmax(176px, 36%) minmax(30px, 1fr) minmax(160px, 36%) }
+#sources.two { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px; align-items: start }
+#sources .src-col { display: grid; gap: 7px; align-content: start }
+#sources .src-head { font-size: .6rem; font-weight: 800; color: #a5f3fc; white-space: nowrap } #sources .src-col.have .src-head { color: #86efac }
+#sources .src-empty { font-size: .62rem; color: #94a3b8 }
+#sources.two .src { padding: 4px 6px } #sources.two .src b { font-size: .7rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis } #sources.two .src small { font-size: .56rem }
+@media (max-width: 620px) { #stage.two { grid-template-columns: minmax(150px, 46%) minmax(10px, 1fr) minmax(118px, 40%) !important }
+  .pick-mode button { font-size: .74rem; padding: 3px 6px; gap: 4px } .pick-mode button b { white-space: nowrap } #sources .src-head span { display: none } }
 .have-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px }
 .have-grid .chip { justify-content: flex-start; text-align: left; border-radius: 10px; min-height: 36px; font-size: .78rem }
 .have-grid .chip[aria-pressed="true"] { background: #15803d; border-color: #15803d; color: #fff }
@@ -436,6 +453,10 @@ input[type="text"], textarea, select { border-radius: 14px }
         <button class="line-btn" id="mapClose" type="button" hidden>내 지도로</button>
         <button class="line-btn" id="mapGoals" type="button" hidden>내 목표 보기</button>
       </div>
+      <div class="pick-mode" id="pickMode" role="group" aria-label="30칸에서 고르는 단계">
+        <button type="button" data-mode="want" aria-pressed="true"><b>1단계</b> 하고 싶은 것 <em id="wantN">0/4</em></button>
+        <button type="button" data-mode="have" aria-pressed="false"><b>2단계</b> 하고 있는 것 <em id="haveN">0/4</em></button>
+      </div>
     </section>
     <div class="jobs" id="jobs"></div>
     <div id="stage">
@@ -500,7 +521,8 @@ input[type="text"], textarea, select { border-radius: 14px }
     <p><b>이 경험은 어디에 가깝나요?</b></p>
     <div class="choices" id="expTypes"></div>
     <p id="expOut" class="help"></p>
-    <p><b>이미 해 본 역할이 있나요? (선택 · 최대 8개)</b></p>
+    <p><b>지금 하고 있거나 해 본 역할이 있나요? (선택 · 최대 4개)</b></p>
+    <p class="help">1쪽 지도의 '2단계 하고 있는 것'과 같은 목록입니다. 어느 쪽에서 골라도 함께 바뀝니다.</p>
     <p class="help">해 본 역할의 역량은 배울 비중을 줄이고, 그 역할들에서 이어지는 다음 역할을 5단계에 <b>→ 다음 행보</b>로 추천합니다.</p>
     <p class="done-note" id="haveCount" aria-live="polite"></p>
     <div class="have-grid" id="haveJobs"></div>
@@ -795,7 +817,7 @@ function extraRecs(list = S.groups) {
 }
 // 2쪽 5단계 후보: 추천 3개, 추가 추천 2개, 1쪽에서 고른 전문가 순
 // 이미 해 본 역할(최대 8): 그 역량은 배울 비중을 줄이고(haveCover), 이어지는 다음 역할 2개를 추천한다(nextRecs)
-const HAVE_MAX = 8;
+const HAVE_MAX = 4, PICK_MAX = 4; // 1쪽 1단계 하고 싶은 것 4 + 2단계 하고 있는 것 4 = 최대 8
 const haveCover = k => Math.min(2, S.have.filter(j => JOBS[j].s.includes(k)).length);
 // 다음 행보: 해 본 역할에 없던 역량이 1개 이상 생기면서, 해 본 역할과 이어지는 역량이 많은 순(같으면 새 역량이 많은 순)
 function nextRecs(skip = []) {
@@ -976,7 +998,7 @@ function motionView() {
 }
 let jobWire = {}, skillWire = {}, pairWire = [], flowing = 0;
 // 출발점(목표 1~3순위, 없으면 관심 전문가) 색: 청록·자홍·금색
-const SLOT_C = ['g1', 'g2', 'g3'], SLOT_HEX = { g1: '#22d3ee', g2: '#e879f9', g3: '#fbbf24' };
+const SLOT_C = ['g1', 'g2', 'g3', 'g4'], SLOT_HEX = { g1: '#22d3ee', g2: '#e879f9', g3: '#fbbf24', g4: '#a78bfa' };
 // '이런 선택이면 예측되는 직무는 [AI로 할 수 있는 일] [분야] 전문가입니다' 추론 규칙 (50~60대 대상: 구체적인 직무명)
 // 예: 키울 역량 1위 '자료 분석' + 1순위 '시설운영개선'(시설·데이터) → 'AI 예측·분석이 가능한 시설 전문가'
 const SKILL_CAN = ['AI 활용 교육이', 'AI 질문 설계가', 'AI로 노하우 정리가', 'AI 예측·분석이', 'AI 문서 자동화가', 'AI 업무도구 제작이', 'AI 결과 검증이', 'AI 확산·공유가',
@@ -998,23 +1020,29 @@ function fitMap() {
     group.forEach(e => { e.style.zoom = z; });
   }
 }
-// 출발점: 전체 지도에서는 방금 쌓은 3명, 내 지도에서는 목표 1~3순위 다음 관심 전문가 (최대 3)
+// 출발점: 전체 지도에서는 방금 쌓은 3명, 내 지도에서는 1단계(목표 1~3순위 다음 하고 싶은 것, 최대 4)와 2단계(하고 있는 것, 최대 4)
 // 탐색 모드: '지도 비우기' 뒤 1쪽은 목표(①②③) 없이 새로 고른 전문가만 보여 준다. 2쪽 답과 결과 카드는 그대로
 let mapFree = false;
 function sourceList() {
   if (full) return [...picked].slice(-3);
-  if (mapFree) return S.picks.slice(0, 3);
-  return [...S.goals, ...S.picks.filter(j => !S.goals.includes(j))].slice(0, 3);
+  if (mapFree) return S.picks.slice(0, PICK_MAX);
+  return [...S.goals, ...S.picks.filter(j => !S.goals.includes(j))].slice(0, PICK_MAX);
 }
 const binary = j => { const s = ((j + 7) * 2654435761 >>> 0).toString(2).padStart(32, '0'); return s + s; };
 function renderSources() {
-  const list = sourceList(), had = full || mapFree ? [] : S.have, key = `${list.join()}|${full}|${S.goals.join()}|${had.join()}`;
+  const list = sourceList(), had = full || mapFree ? [] : S.have.slice(0, HAVE_MAX), key = `${list.join()}|${full}|${S.goals.join()}|${had.join()}`;
   if ($('sources').dataset.key === key) return;
   $('sources').dataset.key = key;
-  $('sources').innerHTML = list.map((j, i) => {
+  const want = list.map((j, i) => {
     const g = full ? -1 : S.goals.indexOf(j);
-    return `<div class="src ${SLOT_C[i]}" data-job="${j}" data-c="${SLOT_C[i]}"><b>${g >= 0 ? '①②③'[g] : '◆'} ${SHORT[j]}</b><small>${full ? '쌓는 중' : g >= 0 ? `${g + 1}순위 목표` : '관심 전문가'}</small><span class="bin" aria-hidden="true">${binary(j)}</span></div>`;
-  }).join('') + (had.length ? `<div class="had-list"><small>✓ 해 본 역할 ${had.length}</small><p>${had.map(j => `<i>${SHORT[j]}</i>`).join('')}</p></div>` : '');
+    return `<div class="src ${SLOT_C[i]}" data-job="${j}" data-c="${SLOT_C[i]}"><b>${g >= 0 ? '①②③'[g] : '◆'} ${SHORT[j]}</b><small>${full ? '쌓는 중' : g >= 0 ? `${g + 1}순위 목표` : '하고 싶은 것'}</small><span class="bin" aria-hidden="true">${binary(j)}</span></div>`;
+  }).join('');
+  // 2단계(하고 있는 것)가 있으면 두 열: 왼쪽 1단계 · 오른쪽 2단계 (사용자 스케치)
+  const two = had.length > 0;
+  $('sources').classList.toggle('two', two); stage.classList.toggle('two', two);
+  $('sources').innerHTML = !two ? want
+    : `<div class="src-col want"><small class="src-head">1단계<span> · 하고 싶은 것</span></small>${want || '<small class="src-empty">위 30칸에서 고르세요</small>'}</div>`
+    + `<div class="src-col have"><small class="src-head">2단계<span> · 하고 있는 것</span></small>${had.map(j => `<div class="src gh" data-job="${j}" data-c="gh"><b>✓ ${SHORT[j]}</b><small>하고 있는 일</small><span class="bin" aria-hidden="true">${binary(j)}</span></div>`).join('')}</div>`;
 }
 function drawWires() {
   if (stage.hidden) return;
@@ -1137,7 +1165,7 @@ const CONDS = [['경력', () => S.groups.length], ['경험', () => S.expType !==
   ['목표', () => S.choice !== null], ['자가진단', () => Object.keys(S.self).length], ['적용 조건', () => S.checks.length], ['도움·돌발', () => S.plus.length + S.minus.length]];
 function dreamHtml(rows) {
   const src = sourceList();
-  if (!src.length || !rows.length) return '<small>관심 전문가를 최대 3명 누르면</small><b>당신이 발전할 AI 전문가</b><small>를 보여 드립니다. 2쪽에서 답할수록 조건이 더해집니다.</small>';
+  if (!src.length || !rows.length) return '<small>1단계 하고 싶은 것을 최대 4개 누르면</small><b>당신이 발전할 AI 전문가</b><small>를 보여 드립니다. 2쪽에서 답할수록 조건이 더해집니다.</small>';
   return `<small>이런 선택이면 당신은</small><b>“${SKILL_CAN[rows[0].k]} 가능한 ${CAT_FIELD[CAT[src[0]]]} 전문가”</b><small>로 발전합니다.</small>`;
 }
 function paintMine(rows) {
@@ -1163,6 +1191,12 @@ function paintMine(rows) {
 // 분홍 = 먼저 배울 것, 초록 = 학습 완료, 붉은 점선 = 돌발 상황으로 끊긴 역량. 계산은 하지 않고 칸의 숫자만 보여 준다.
 // 움직임을 끄면 같은 자리의 정지 화면만 그리고, 창이 가려지면 쉰다. 남는 높이가 120px 미만이면 그리지 않는다.
 const city = { rows: [], hours: HOURS, top: 1, h: {}, t0: performance.now(), last: 0, prev: 0 };
+// 1쪽 30칸을 누를 때 담는 단계: want = 1단계 하고 싶은 것, have = 2단계 하고 있는 것
+let pickMode = 'want';
+function pickModeView() {
+  document.querySelectorAll('#pickMode [data-mode]').forEach(b => b.setAttribute('aria-pressed', b.dataset.mode === pickMode));
+  $('wantN').textContent = `${S.picks.length}/${PICK_MAX}`; $('haveN').textContent = `${S.have.length}/${HAVE_MAX}`;
+}
 function cityData(rows, filled, top, first, cuts) {
   city.rows = filled ? rows.map(r => ({ k: r.k, pct: r.pct, first: first.includes(r.k), done: S.step === LAST && has(S.done, r.k), cut: cuts.includes(r.k) })) : [];
   city.hours = has(S.minus, 4) ? HOURS / 2 : HOURS;
@@ -1282,6 +1316,7 @@ function paint(filled = true) {
   const learned = rows.reduce((s, r) => s + (has(S.done, r.k) ? r.pct : 0), 0), complete = !mapFree && S.step === LAST && filled && rows.length && learned === 100;
   stage.classList.toggle('complete', Boolean(complete));
   $('mapGoals').hidden = !mapFree || !S.goals.length;
+  pickModeView();
   $('hubText').textContent = mapFree ? (rows.length ? `탐색 중 · 배울 것 ${rows.length}가지` : '탐색 중 · 전문가를 고르세요')
     : S.step === LAST && filled && rows.length
     ? (complete ? `정의 완성 · ${LEVELS[finalLevel()].t}` : `${LEVELS[finalLevel()].t} · 학습 ${learned}%`)
@@ -1439,7 +1474,7 @@ function check() {
   if (!arr(S.sides, STAGES.length)) S.sides = b.sides;
   ['self', 'model'].forEach(k => { if (!S[k] || typeof S[k] !== 'object') S[k] = b[k]; });
   S.groups = S.groups.filter((g, i, a) => GROUPS[g] && a.indexOf(g) === i).slice(0, 4);
-  S.picks = (arr(S.picks) ? S.picks : []).filter((j, i, a) => JOBS[j] && a.indexOf(j) === i).slice(0, 3);
+  S.picks = (arr(S.picks) ? S.picks : []).filter((j, i, a) => JOBS[j] && a.indexOf(j) === i).slice(0, PICK_MAX);
   S.have = (arr(S.have) ? S.have : []).filter((j, i, a) => JOBS[j] && a.indexOf(j) === i).slice(0, HAVE_MAX);
   if (!EXP[S.expType]) S.expType = null;
   if (!JOBS[S.choice] || !candidates().includes(S.choice)) S.choice = null;
@@ -1626,6 +1661,14 @@ $('groups').addEventListener('click', e => {
   S.groups = has(S.groups, i) ? S.groups.filter(g => g !== i) : [...S.groups, i];
   S.choice = null; S.goals = []; S.lastChoice = null; S.model = {}; S.self = {}; refresh(); drawWires();
 });
+$('pickMode').addEventListener('click', e => {
+  const b = e.target.closest('[data-mode]');
+  if (!b) return;
+  pickMode = b.dataset.mode; pickModeView();
+  showInfo(pickMode === 'have'
+    ? `<b>2단계 · 하고 있는 것</b><p>지금 하고 있거나 해 본 역할을 위 30칸에서 최대 ${HAVE_MAX}개 누르세요. 초록 ✓로 표시되고, 그 역량은 배울 비중이 줄어듭니다.</p>`
+    : `<b>1단계 · 하고 싶은 것</b><p>앞으로 해 보고 싶은 역할을 위 30칸에서 최대 ${PICK_MAX}개 누르세요.</p>`);
+});
 $('haveJobs').addEventListener('click', e => {
   const b = e.target.closest('[data-have]');
   if (!b) return;
@@ -1654,9 +1697,18 @@ $('jobs').addEventListener('click', e => {
     if (picked.has(j)) { picked.delete(j); arrived.forEach(a => a.delete(j)); drawWires(); } else addMapJob(j);
     return;
   }
-  // 내 지도: 관심 전문가를 최대 3명까지 고른다. 단계와 상관없이 언제든 누를 수 있다
+  // 내 지도: 위 단계 버튼에 따라 1단계 하고 싶은 것(최대 4) 또는 2단계 하고 있는 것(최대 4)에 담는다. 단계와 상관없이 언제든 누를 수 있다
+  const synced = () => { save(); if (S.step === 4) ENTER[4](); if (S.step === 2) ENTER[2](); };
+  if (pickMode === 'have') {
+    if (has(S.have, j)) { S.have = S.have.filter(x => x !== j); showInfo(jobInfo(j)); synced(); drawWires(); return; }
+    if (S.have.length >= HAVE_MAX) { showInfo(`<b>2단계는 최대 ${HAVE_MAX}개까지 고를 수 있습니다.</b><p>이미 고른 것(${S.have.map(x => NUM[x]).join(', ')}번)을 다시 눌러 빼고 고르세요.</p>`); return; }
+    mapFree = false; S.picks = S.picks.filter(x => x !== j); S.have = [...S.have, j]; synced();
+    showInfo(jobInfo(j) + '<p class="help">2단계(하고 있는 것)에 담았습니다. 이 역할의 역량은 배울 비중을 줄이고, 이어지는 역할을 2쪽 5단계에 → 다음 행보로 추천합니다.</p>');
+    flowFrom(j); return;
+  }
   if (S.picks.includes(j)) { S.picks = S.picks.filter(x => x !== j); showInfo(jobInfo(j)); save(); if (S.step === 4) ENTER[4](); drawWires(); return; }
-  if (S.picks.length >= 3) { showInfo(`<b>최대 3명까지 고를 수 있습니다.</b><p>이미 고른 전문가(${S.picks.map(x => NUM[x]).join(', ')}번)를 다시 눌러 빼고 고르세요.</p>`); return; }
+  if (S.picks.length >= PICK_MAX) { showInfo(`<b>1단계는 최대 ${PICK_MAX}개까지 고를 수 있습니다.</b><p>이미 고른 것(${S.picks.map(x => NUM[x]).join(', ')}번)을 다시 눌러 빼고 고르세요. 하고 있는 일은 위 '2단계' 버튼을 누른 뒤 고르세요.</p>`); return; }
+  if (has(S.have, j)) { S.have = S.have.filter(x => x !== j); if (S.step === 2) ENTER[2](); }
   S.picks = [...S.picks, j]; save();
   showInfo(jobInfo(j) + (mapFree ? '<p class="help">탐색 중: 1쪽에서 고른 전문가만으로 보여 줍니다. 2쪽 결과는 목표 기준 그대로입니다.</p>' : S.choice !== null ? '<p class="help">1쪽 빛줄기에 더했습니다. 배울 것과 시간은 1순위 목표 기준이며, 계산에 넣으려면 2쪽 5단계에서 목표로 고르세요.</p>' : ''));
   if (S.step === 4) ENTER[4]();
