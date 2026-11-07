@@ -81,7 +81,7 @@ textarea { min-height: 96px; resize: vertical }
 #wires circle { fill: var(--signal) }
 .jobs, .skills { position: relative; display: grid; gap: 8px }
 .jobs { grid-template-columns: repeat(3, minmax(0, 1fr)) }
-.skills { grid-template-columns: repeat(4, minmax(0, 1fr)) }
+.skills { grid-template-columns: repeat(5, minmax(0, 1fr)) }
 .job { display: grid; gap: 2px; align-content: start; text-align: left; background: var(--card); border: 2px solid var(--wire); border-radius: 10px; padding: 10px; word-break: keep-all }
 .job:only-child { grid-column: 1 / -1; text-align: center }
 .job small { color: var(--accent); font-weight: 700 }
@@ -206,7 +206,8 @@ body { margin: 0; background: linear-gradient(135deg, var(--sky), var(--mint)); 
 .hub { align-self: center; border-radius: 999px; padding: 6px 22px; box-shadow: var(--shadow) }
 .hub strong { font-size: 1.15rem }
 .job { padding: 7px 9px } .job b { font-size: .84rem; line-height: 1.28 } .job small { font-size: .74rem }
-.skill { min-height: 52px; padding: 5px 4px }
+.skill { min-height: 42px; padding: 3px 4px; gap: 0 }
+.skill b, .skill em { font-size: .78rem }
 .jobs.all .job { grid-template-columns: auto minmax(0, 1fr); align-items: baseline; column-gap: 6px }
 #mapInfo .total { font-size: 1.4rem }
 .gate { gap: 4px 5px }
@@ -218,13 +219,13 @@ body { margin: 0; background: linear-gradient(135deg, var(--sky), var(--mint)); 
 .gate > b { background: none; padding: 2px 4px; font-size: .8rem }
 .info-box { flex: none; min-height: 40px; padding: 6px 12px; gap: 2px; font-size: .84rem; background: var(--panel); border: 2px dashed var(--wire) }
 .info-box.empty { color: var(--muted); align-content: center }
-#mapInfo { display: grid; gap: 6px; flex: none }
+#mapInfo { display: grid; gap: 4px; flex: none }
 #myInfo { display: grid; gap: 6px }
 #demoInfo { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px }
-.cond-line, .top-line { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; font-size: .78rem; margin: 0 }
+.cond-line, .top-line { display: flex; flex-wrap: wrap; align-items: center; gap: 3px; font-size: .72rem; margin: 0 }
 .cond-line > b, .top-line > b { margin-right: 4px; white-space: nowrap }
 #condChips, #topSkills { display: contents }
-.cond-line i, .top-line i { font-style: normal; padding: 2px 9px; border-radius: 999px; background: var(--panel); color: var(--muted); font-weight: 600; white-space: nowrap }
+.cond-line i, .top-line i { font-style: normal; padding: 1px 7px; border-radius: 999px; background: var(--panel); color: var(--muted); font-weight: 600; white-space: nowrap }
 .cond-line i.on { background: var(--fill); color: var(--ink) }
 .top-line i { background: var(--accent); color: var(--on-accent) }
 .top-line i small { opacity: .85 }
@@ -292,6 +293,7 @@ input[type="text"], textarea, select { border-radius: 14px }
   h1 { font-size: 1.5rem }
   .jobs.all { grid-template-columns: repeat(2, minmax(0, 1fr)) }
   .jobs.grid30 { grid-template-columns: repeat(3, minmax(0, 1fr)) }
+  .skills { grid-template-columns: repeat(3, minmax(0, 1fr)) }
   .choices { grid-template-columns: minmax(0, 1fr) }
   .stage-row { grid-template-columns: minmax(0, 1fr) 62px minmax(0, 1fr) }
   .side span { font-size: .84rem }
@@ -473,12 +475,18 @@ input[type="text"], textarea, select { border-radius: 14px }
 
 <script id="installerZip" type="text/plain"></script>
 <script>
-const SKILLS = ['AI 기초 이해', '질문 설계', '경험 구조화', '자료 분석', '문서 자동화', '도구 제작', '결과 검증', '활용·공유'];
-const SKILL_D = ['나를 이해시켜 내 판단을 돕는 조력자로 만드는 방법', 'AI와 질문을 이어 가며 완성도를 높이는 방법', '내 경험을 어떤 성과물로 만들지 고민하고 해 보는 것', '관점은 내가 정하고 정리와 집계는 AI에 맡기는 것',
-  '문서 전체를 주고 의도를 말해 새 문서를 만드는 것', '나만의 프로그램과 앱을 말로 설명해 만드는 것', '편리한가, 정확한가, 실수가 없는가, 빠른가로 발전시키는 것', '따로 만든 앱을 하나의 프로세스로 결합해 나누는 것'];
+// 9~13번째 역량은 v1.8에 추가 (기존 번호는 그대로 두어 저장된 자가진단 값이 유지된다). 'AI 기초 이해'는 'AI 리터러시'로 넓혔다
+const SKILLS = ['AI 리터러시', '질문 설계', '경험 구조화', '자료 분석', '문서 자동화', '도구 제작', '결과 검증', '활용·공유', '개별 에이전트', '팀 에이전트', 'AI 윤리·보안', '멀티모달 활용', '성과·비용 판단'];
+const SKILL_D = ['AI의 원리와 한계를 알고, 나를 이해시켜 내 판단을 돕는 조력자로 만드는 방법', 'AI와 질문을 이어 가며 완성도를 높이는 방법', '내 경험을 어떤 성과물로 만들지 고민하고 해 보는 것', '관점은 내가 정하고 정리와 집계는 AI에 맡기는 것',
+  '문서 전체를 주고 의도를 말해 새 문서를 만드는 것', '나만의 프로그램과 앱을 말로 설명해 만드는 것', '편리한가, 정확한가, 실수가 없는가, 빠른가로 발전시키는 것', '따로 만든 앱을 하나의 프로세스로 결합해 나누는 것',
+  'AI 에이전트에게 일을 맡겨 여러 단계를 스스로 실행하게 하고 중간 결과를 점검하는 것', '여러 에이전트와 사람에게 역할을 나누고 검토·승인 흐름을 짜는 것',
+  '개인정보·보안·저작권을 지키며 AI를 쓰는 기준을 세우고 지키는 것', '사진·음성·영상·도면 이미지를 AI로 읽고 정리하는 것', 'AI 도입 효과와 요금 대비 절감 시간을 재고 계속할지 판단하는 것'];
 const SKILL_Q = ['챗GPT 같은 AI에게 내 상황을 설명하고 답을 받아 본 적이 있다.', 'AI의 답이 부족하면 조건을 더해 다시 질문할 수 있다.', '내 경험을 상황, 판단, 행동, 결과로 나눠 설명할 수 있다.',
   '점검 기록이나 고장 이력에서 반복되는 문제를 찾아낼 수 있다.', '기존 보고서 양식을 AI에 주고 새 보고서 초안을 만들 수 있다.', '내가 쓸 체크리스트나 계산표를 직접 만들어 본 적이 있다.',
-  'AI가 만든 내용을 원자료와 대조해 틀린 부분을 찾을 수 있다.', '내가 만든 자료를 동료가 쓰도록 설명하고 고쳐 줄 수 있다.'];
+  'AI가 만든 내용을 원자료와 대조해 틀린 부분을 찾을 수 있다.', '내가 만든 자료를 동료가 쓰도록 설명하고 고쳐 줄 수 있다.',
+  'AI 에이전트에게 여러 단계의 일을 맡기고 중간 결과를 점검해 본 적이 있다.', '여러 AI 도구나 에이전트에 역할을 나눠 맡기고 사람이 검토하는 순서를 정할 수 있다.',
+  'AI에 넣으면 안 되는 정보를 구분하고 회사의 AI 사용 기준을 설명할 수 있다.', '현장 사진이나 음성 메모를 AI로 정리해 보고서에 써 본 적이 있다.', 'AI를 쓰기 전후의 작업 시간이나 비용을 비교해 기록할 수 있다.'];
+console.assert(SKILL_D.length === SKILLS.length && SKILL_Q.length === SKILLS.length, 'skill texts');
 // 화면 번호 1~5 순서. 내부 점수는 매우 그렇다 5점, 전혀 아니다 1점
 const SCALE = ['매우 그렇다', '그렇다', '보통이다', '아니다', '전혀 아니다'];
 const JOBS = [
@@ -500,6 +508,11 @@ const JOBS = [
   { n: 'AI 도입 컨설턴트', w: '조직의 AI 도입 진단과 로드맵 제시', s: [0, 3, 6, 7] }, { n: 'AI 활용 1인 창업가', w: 'AI로 1인 사업 운영과 수익화', s: [0, 4, 5, 7] },
   { n: 'AI 보안·윤리 관리자', w: 'AI 사용 기준·보안·개인정보 관리', s: [0, 6, 7] }
 ];
+// 새 역량 연결 (시범교육 전 초안). 키는 JOBS 순서, 값은 9~13번째 역량 번호
+// 8 개별 에이전트 · 9 팀 에이전트 · 10 AI 윤리·보안 · 11 멀티모달 활용 · 12 성과·비용 판단
+const NEW_LINKS = { 0: [8], 1: [10], 2: [10], 3: [11], 4: [11, 12], 5: [11], 6: [9, 10, 12], 7: [8, 9], 8: [8], 9: [11], 10: [12], 11: [11], 12: [8, 10],
+  14: [10], 16: [10], 17: [11], 18: [12], 19: [8], 20: [11], 21: [12], 22: [8, 10], 23: [11], 24: [8], 25: [8], 26: [8, 9], 27: [9, 12], 28: [8, 12], 29: [10] };
+Object.entries(NEW_LINKS).forEach(([j, ks]) => JOBS[j].s.push(...ks));
 // 1쪽 지도앱 표: 분야 6개 × 5명. 번호는 이 표의 순서(1~30)
 const CATS = [
   { n: '업무개선', j: [0, 7, 8, 9, 10] }, { n: '지식·기술', j: [1, 3, 11, 12, 13] }, { n: '교육·콘텐츠', j: [2, 5, 14, 15, 16] },
@@ -512,14 +525,15 @@ const NUM = []; CATS.forEach(c => c.j.forEach(j => { NUM[j] = NUM.filter(Boolean
 const MAX = SKILLS.map((_, i) => JOBS.filter(j => j.s.includes(i)).length);
 const TOTAL = MAX.reduce((a, b) => a + b, 0);
 // 앞 7명이 기획안 62쪽 연결표와 맞는지 확인
-const MAX7 = SKILLS.map((_, i) => JOBS.slice(0, 7).filter(j => j.s.includes(i)).length);
+// 기획안 연결표(기존 8개 역량)는 그대로인지 확인
+const MAX7 = SKILLS.slice(0, 8).map((_, i) => JOBS.slice(0, 7).filter(j => j.s.includes(i)).length);
 console.assert(MAX7.reduce((a, b) => a + b, 0) === 24 && MAX7.join() === '3,3,3,3,2,2,4,4', 'skill links differ from 연결표');
 console.assert(JOBS.length === 30 && SHORT.length === 30 && NUM.filter(Boolean).length === 30, 'expert table');
 const GROUPS = [
-  { n: '현장시공직', h: '시공, 하자 대응, 안전, 현장 판단', a: ['시공 체크리스트', '하자 사례집', '사진 작업 매뉴얼'], j: [3, 4, 2], s: [2, 4, 6], w: '현장 사진의 얼굴과 장소명은 가리고, 안전 판단은 사람이 합니다.' },
+  { n: '현장시공직', h: '시공, 하자 대응, 안전, 현장 판단', a: ['시공 체크리스트', '하자 사례집', '사진 작업 매뉴얼'], j: [3, 4, 2], s: [2, 4, 6, 11], w: '현장 사진의 얼굴과 장소명은 가리고, 안전 판단은 사람이 합니다.' },
   { n: '기술직', h: '설계, 계산, 측정, 진단', a: ['판단기준표', '계산 도구', '진단보고서 양식'], j: [4, 3, 1], s: [3, 5, 6], w: '도면과 내부 측정값은 AI에 입력하지 않습니다.' },
   { n: '영업직', h: '고객 문제 파악, 견적, 제안, 협상', a: ['제안서 양식', '고객 FAQ', '상담 스크립트'], j: [0, 5, 6], s: [1, 4, 7], w: '고객정보, 단가, 계약 조건은 AI에 입력하지 않습니다.' },
-  { n: '관리직', h: '일정, 예산, 인력, 계약, 보고', a: ['보고서 자동화', '업무 매뉴얼', '의사결정 기준표'], j: [0, 1, 6], s: [3, 4, 7], w: '인사정보, 예산, 내부 보고서는 AI에 입력하지 않습니다.' }
+  { n: '관리직', h: '일정, 예산, 인력, 계약, 보고', a: ['보고서 자동화', '업무 매뉴얼', '의사결정 기준표'], j: [0, 1, 6], s: [3, 4, 7, 12], w: '인사정보, 예산, 내부 보고서는 AI에 입력하지 않습니다.' }
 ];
 // 두 직군을 결합했을 때의 후보. 키는 GROUPS 번호 쌍이며 시범교육 전 초안
 const PAIRS = { '0-1': [4, 3, 2], '0-2': [0, 5, 6], '0-3': [1, 4, 6], '1-2': [6, 5, 3], '1-3': [1, 4, 6], '2-3': [0, 6, 5] };
@@ -567,8 +581,9 @@ const MINUS = [
   { n: '예산 삭감', p: '유료 도구를 빼고 무료 도구와 문서 양식으로 범위를 줄이세요.' },
   { n: '업무 시간 부족', p: '12시간 단기 계획으로 줄이고 목표 1개만 유지하세요.' }
 ];
-const CUT = { 0: [3, 4], 1: [7], 3: [5] }; // 돌발 상황별로 끊겨 보일 역량 번호
-const PHRASE = ['AI와 함께 판단을 세워서', '좋은 질문을 설계해서', '경험을 구조화해서', '자료를 분석해서', '문서를 자동화해서', '나만의 도구를 만들어', '결과를 검증해서', '성과를 공유해서'];
+const CUT = { 0: [3, 4, 8], 1: [7], 3: [5, 9] }; // 돌발 상황별로 끊겨 보일 역량 번호
+const PHRASE = ['AI와 함께 판단을 세워서', '좋은 질문을 설계해서', '경험을 구조화해서', '자료를 분석해서', '문서를 자동화해서', '나만의 도구를 만들어', '결과를 검증해서', '성과를 공유해서', '에이전트에게 일을 맡겨서', '에이전트 팀을 운영해서', 'AI를 안전하게 다뤄서', '사진·음성까지 활용해서', '성과를 숫자로 증명해서'];
+console.assert(PHRASE.length === SKILLS.length, 'phrase per skill');
 const PLACE = ['시공현장', '기술업무', '영업현장', '관리업무'];
 const TYPE = ['현장형', '기술형', '영업형', '관리형'];
 const ROLE = ['AI 업무개선자', 'AI 지식관리자', 'AI 활용 강사', '기술문서 디지털화 담당자', '운영 개선 담당자', 'AI 콘텐츠 제작자', 'AI 도입 관리자',
@@ -638,6 +653,8 @@ function baseRows(job, list = S.groups) {
   if (has(S.plus, 2)) score[7] = Math.max(0, score[7] - 1);
   if (has(S.minus, 2)) score[6] += 2;
   if (has(S.minus, 3)) score[5] = Math.max(0, score[5] - 1);
+  if (has(S.minus, 0)) score[10] += 2; // 보안 규정 강화 → 윤리·보안 학습을 늘린다
+  if (has(S.plus, 3)) { score[8] += 1; score[12] += 1; } // 회사가 요금을 지원하는 에이전트 → 에이전트 활용과 요금 대비 효과 측정
   return spread(score);
 }
 
@@ -752,7 +769,8 @@ GROUPS.forEach((_, a) => GROUPS.forEach((_, b) => {
   console.assert(recommended(list).length === 3 && new Set(recommended(list)).size === 3, 'candidate count', list);
   recommended(list).forEach(j => console.assert(personalRows(j, list, {}).reduce((s, r) => s + r.pct, 0) === 100, 'ratio sum', list, j));
 });
-console.assert(personalRows(1, [0, 3], { 2: 4, 6: 2, 3: 2, 4: 4, 7: 3 }).map(r => r.pct).join() === '35,30,15,10,10', 'self ratio');
+// 기획안 예시(홍길동, 현장시공+관리, 지식관리)의 기대값. 역량 13개로 늘린 v1.8 기준 (8개일 때: 35,30,15,10,10)
+console.assert(personalRows(1, [0, 3], { 2: 4, 6: 2, 3: 2, 4: 4, 7: 3 }).map(r => r.pct).join() === '25,20,15,10,10,10,5,5', 'self ratio');
 console.assert(baseLevel(5, true) === 2 && baseLevel(3, true) === 1 && baseLevel(2, true) === 0 && baseLevel(6, false) === 0, 'level rule');
 
 // 화면 구성
