@@ -4,6 +4,7 @@
 원본 v1.7 설치 파일과 같은 형식(CRLF, 한 줄 base64 블록)으로 만든다.
 """
 import base64
+import datetime
 import pathlib
 import sys
 import zipfile
@@ -27,8 +28,20 @@ def b64(name):
     return base64.b64encode((SRC / name).read_bytes()).decode('ascii')
 
 
+# 화면 머리의 '빌드 개발본'을 묶은 시각(한국시간)으로 바꿔, 사용자가 어떤 판을 보고 있는지 알 수 있게 한다
+STAMP_TAG = '빌드 개발본'
+STAMP = '빌드 ' + datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9))).strftime('%m%d-%H%M')
+
+
+def stamped_html():
+    html = (SRC / 'app.html').read_text(encoding='utf-8')
+    assert html.count(STAMP_TAG) == 1
+    return html.replace(STAMP_TAG, STAMP)
+
+
 def build_bat():
-    lines = HEADER + ['__SCRIPT__', b64('install.ps1'), '__HTML__', b64('app.html'), '__ICO__', b64('app.ico')]
+    html = base64.b64encode(stamped_html().encode('utf-8')).decode('ascii')
+    lines = HEADER + ['__SCRIPT__', b64('install.ps1'), '__HTML__', html, '__ICO__', b64('app.ico')]
     return ('\r\n'.join(lines) + '\r\n').encode('ascii')
 
 
@@ -45,11 +58,11 @@ def main():
     # 온라인(공유 페이지)용: 설치 ZIP을 페이지 안에 넣어 'PC 설치 파일 받기' 버튼이 보이게 한다.
     # 설치되는 앱(.bat 안의 app.html)에는 ZIP이 없어 버튼이 숨는다.
     tag = '<script id="installerZip" type="text/plain"></script>'
-    html = (SRC / 'app.html').read_text(encoding='utf-8')
+    html = stamped_html()
     assert html.count(tag) == 1
     online = html.replace(tag, f'<script id="installerZip" type="text/plain">{base64.b64encode(zip_path.read_bytes()).decode("ascii")}</script>')
     (out / 'online.html').write_text(online, encoding='utf-8')
-    print(out / 'online.html', len(online.encode('utf-8')), 'bytes')
+    print(out / 'online.html', len(online.encode('utf-8')), 'bytes', STAMP)
 
 
 if __name__ == '__main__':
