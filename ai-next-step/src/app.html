@@ -93,6 +93,12 @@ textarea { min-height: 96px; resize: vertical }
 .hub span { color: var(--muted); font-size: .84rem }
 .hub.pulse { animation: pulse .45s ease-out }
 @keyframes pulse { 40% { transform: scale(1.05); border-color: var(--signal) } }
+/* 10단계: 학습을 마친 역량과 정의 완성 */
+.skill.done { border-color: var(--bright) }
+.skill.done em { color: var(--gold); font-weight: 700 }
+#stage.complete { box-shadow: inset 0 0 0 3px var(--bright) }
+#stage.complete .hub { border-color: var(--bright); box-shadow: 0 0 0 6px var(--fill); animation: done-glow 1.6s ease-in-out 2 }
+@keyframes done-glow { 50% { box-shadow: 0 0 0 12px var(--fill) } }
 .skill { position: relative; overflow: hidden; display: grid; align-content: center; gap: 1px; min-height: 76px; text-align: center; background: var(--card); border: 2px solid transparent; border-radius: 10px; padding: 8px 4px }
 .skill[aria-pressed="true"] { border-color: var(--signal) }
 .skill i { position: absolute; left: 0; right: 0; bottom: 0; height: 0; background: var(--fill); transition: height .35s ease-out }
@@ -291,7 +297,7 @@ input[type="text"], textarea, select { border-radius: 14px }
   .job b { font-size: .82rem }
   .skill b { font-size: .76rem }
 }
-@media (prefers-reduced-motion: reduce) { .skill i, .track i { transition: none } .hub.pulse { animation: none } }
+@media (prefers-reduced-motion: reduce) { .skill i, .track i { transition: none } .hub.pulse, #stage.complete .hub { animation: none } }
 </style>
 
 </head><body>
@@ -440,6 +446,7 @@ input[type="text"], textarea, select { border-radius: 14px }
     <div class="actions">
       <button class="main-btn" id="copyPrompt" type="button">지침문 복사</button>
       <button class="line-btn" id="copyCard" type="button">결과 복사</button>
+      <button class="line-btn" id="replay" type="button">1쪽 결론 다시 보기</button>
       <button class="line-btn" id="cardMap" type="button">전체 지도 보기</button>
       <button class="line-btn" id="restart" type="button">처음부터 다시</button>
     </div>
@@ -902,11 +909,31 @@ function paint(filled = true) {
   SKILLS.forEach((_, k) => {
     const r = rows.find(x => x.k === k), cell = $('skill' + k);
     cell.querySelector('i').style.height = filled && r ? r.pct / top * 100 + '%' : '0';
-    cell.querySelector('em').textContent = filled && r ? `${first.includes(k) ? '먼저 ' : ''}${r.pct}%` : '—';
+    const fin = S.step === LAST && filled && r && has(S.done, k);
+    cell.classList.toggle('done', Boolean(fin));
+    cell.querySelector('em').textContent = filled && r ? `${fin ? '✓ 완료 ' : first.includes(k) ? '먼저 ' : ''}${r.pct}%` : '—';
     skillWire[k]?.classList.toggle('on', Boolean(filled && r));
     skillWire[k]?.classList.toggle('cut', cuts.includes(k));
   });
-  $('hubText').textContent = S.step === 7 || S.step === LAST ? LEVELS[finalLevel()].t : rows.length ? '배울 것 ' + rows.length + '가지' : '전문가를 고르세요';
+  const learned = rows.reduce((s, r) => s + (has(S.done, r.k) ? r.pct : 0), 0), complete = S.step === LAST && filled && rows.length && learned === 100;
+  stage.classList.toggle('complete', Boolean(complete));
+  $('hubText').textContent = S.step === LAST && filled && rows.length
+    ? (complete ? `정의 완성 · ${LEVELS[finalLevel()].t}` : `${LEVELS[finalLevel()].t} · 학습 ${learned}%`)
+    : S.step === 7 || S.step === LAST ? LEVELS[finalLevel()].t : rows.length ? '배울 것 ' + rows.length + '가지' : '전문가를 고르세요';
+}
+
+// 10단계 결론 재생: 조건이 하나씩 켜지고, 1~3순위에서 허브를 거쳐 역량 칸이 차오르며 내 지도가 완성된다
+async function playConclusion() {
+  if (full) return;
+  const run = ++flowing, wait = ms => new Promise(r => setTimeout(r, calm.matches ? 0 : ms));
+  drawWires(); paint(false);
+  const chips = [...document.querySelectorAll('#condChips i')], lit = chips.filter(c => c.classList.contains('on'));
+  lit.forEach(c => c.classList.remove('on'));
+  for (const c of lit) { await wait(120); if (run !== flowing) return; c.classList.add('on'); }
+  for (const j of S.goals) { await fly(jobWire[j]); if (run !== flowing) return; }
+  hub.classList.remove('pulse'); void hub.offsetWidth; hub.classList.add('pulse');
+  await Promise.all(rowsNow().map(r => fly(skillWire[r.k])));
+  if (run === flowing) paint();
 }
 
 // 전문가 → 경험×AI → 역량으로 점이 흐른 뒤 칸이 차오른다
@@ -1112,6 +1139,7 @@ function show() {
   ENTER[S.step]?.();
   mapView();
   save();
+  if (S.step === LAST) playConclusion();
   if (leaf) {
     document.querySelector('.flow-page').append(leaf);
     leaf.scrollTop = top;
@@ -1143,8 +1171,10 @@ $('study').addEventListener('change', e => {
   const k = Number(e.target.dataset.done);
   S.done = toggle(S.done, k);
   refresh();
+  paint();
   $('done' + k).focus();
 });
+$('replay').addEventListener('click', () => { if (full) { mapRun++; mapPlaying = false; full = false; mapView(); } setPage('map'); playConclusion(); });
 $('mapClose').addEventListener('click', () => { mapRun++; mapPlaying = false; full = false; mapView(); });
 $('cardMap').addEventListener('click', () => { freeMap(); setPage('map'); });
 // 내 지도에서는 고른 전문가를 비우고, 전체 지도에서는 쌓은 것을 비운다
