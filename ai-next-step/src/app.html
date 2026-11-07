@@ -1337,7 +1337,7 @@ if (zipText && window.claude?.use) claude.use('downloads').then(downloads => {
     const bytes = Uint8Array.from(atob(zipText), c => c.charCodeAt(0));
     try {
       await downloads.save({ filename: `경험곱하기AI_${document.querySelector('.ver').textContent}_설치.zip`, data: bytes });
-      say('받은 ZIP 파일을 열고 안의 설치 파일을 더블클릭하세요. 바탕화면에 아이콘이 생기고 앱이 실행됩니다.');
+      say('받은 ZIP 파일의 압축을 풀고 안의 설치 파일(.bat)을 더블클릭하세요. 설치할 폴더를 고르면 바탕화면에 아이콘이 생기고 앱이 바로 실행됩니다. ZIP을 원하는 폴더에 받으려면 브라우저 설정에서 "다운로드 전에 저장 위치 확인"을 켜고 다시 누르세요.');
     } catch (e) {
       if (e.code !== 'declined') say('이 화면에서는 파일을 받을 수 없습니다. 잠시 후 다시 눌러 주세요.');
     }

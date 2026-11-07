@@ -38,9 +38,18 @@ def main():
     bat_name = f'{NAME}_{VER}_설치.bat'
     data = build_bat()
     (out / bat_name).write_bytes(data)
-    with zipfile.ZipFile(out / f'{NAME}_{VER}_설치.zip', 'w', zipfile.ZIP_DEFLATED) as z:
+    zip_path = out / f'{NAME}_{VER}_설치.zip'
+    with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as z:
         z.writestr(zipfile.ZipInfo(bat_name, date_time=(2026, 11, 7, 0, 0, 0)), data, zipfile.ZIP_DEFLATED)
     print(out / bat_name, len(data), 'bytes')
+    # 온라인(공유 페이지)용: 설치 ZIP을 페이지 안에 넣어 'PC 설치 파일 받기' 버튼이 보이게 한다.
+    # 설치되는 앱(.bat 안의 app.html)에는 ZIP이 없어 버튼이 숨는다.
+    tag = '<script id="installerZip" type="text/plain"></script>'
+    html = (SRC / 'app.html').read_text(encoding='utf-8')
+    assert html.count(tag) == 1
+    online = html.replace(tag, f'<script id="installerZip" type="text/plain">{base64.b64encode(zip_path.read_bytes()).decode("ascii")}</script>')
+    (out / 'online.html').write_text(online, encoding='utf-8')
+    print(out / 'online.html', len(online.encode('utf-8')), 'bytes')
 
 
 if __name__ == '__main__':

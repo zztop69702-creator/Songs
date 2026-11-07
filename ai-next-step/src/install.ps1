@@ -58,3 +58,5 @@ foreach ($folder in $folders) {
 try { & ie4uinit.exe -show } catch { }
 Write-Host "$name $ver 설치가 끝났습니다. 앱을 실행합니다."
 Start-Process (Join-Path $folders[0] "$name.lnk")
+# 설치 결과를 창으로 알려 준다 (명령 창은 바로 닫히므로)
+[Windows.Forms.MessageBox]::Show("바탕화면에 '$name' 아이콘을 만들고 앱을 실행했습니다.`n`n설치 폴더: $dir", "$name $ver 설치 완료") | Out-Null
