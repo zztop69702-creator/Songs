@@ -288,6 +288,12 @@ body { margin: 0; background: linear-gradient(135deg, var(--sky), var(--mint)); 
 .skill { border-color: var(--wire) }
 .chip { border-radius: 999px; padding: 3px 8px; min-height: 32px; font-size: .72rem }
 .chip:disabled { cursor: not-allowed; border-style: dashed }
+/* 1쪽 아래 빈 공간 = 3D 역량 도시(1안). 남는 높이만 쓰고, 낮으면(120px 미만) 비워 둔다 */
+#stage { grid-template-rows: auto auto minmax(0, 1fr) auto auto }
+#stage > #deep { grid-column: 1 / -1; grid-row: 3; position: relative; min-height: 0; border-radius: 12px; overflow: hidden; pointer-events: none }
+#stage > #deep.on { border-top: 1px solid rgba(165, 243, 252, .16) }
+#deep canvas { position: absolute; inset: 0; width: 100%; height: 100% }
+#stage > .gate.plus { grid-row: 4 } #stage > .gate.minus { grid-row: 5 }
 .chip:disabled:not([aria-pressed="true"]) { color: var(--muted) }
 .gate > b { background: none; padding: 2px 4px; font-size: .8rem }
 .info-box { flex: none; min-height: 40px; padding: 6px 12px; gap: 2px; font-size: .84rem; background: var(--panel); border: 2px dashed var(--wire) }
@@ -423,6 +429,7 @@ input[type="text"], textarea, select { border-radius: 14px }
       <div class="hub" id="hub"><strong>│ 경험 × AI │</strong><span id="hubText"></span></div>
       <div id="sources"></div>
       <div class="skills" id="skills"></div>
+      <div id="deep" aria-hidden="true"><canvas id="city"></canvas></div>
       <div class="gate plus" id="plusGate"></div>
       <div class="gate minus" id="minusGate"></div>
     </div>
@@ -1107,6 +1114,97 @@ function paintMine(rows) {
   });
 }
 
+// 1쪽 아래 3D '역량 도시'(1안): 막대 높이 = 배분 %(칸과 같은 비율), 막대 위 = 약 학습 시간(결과카드와 같은 식),
+// 분홍 = 먼저 배울 것, 초록 = 학습 완료, 붉은 점선 = 돌발 상황으로 끊긴 역량. 계산은 하지 않고 칸의 숫자만 보여 준다.
+// 움직임을 끄면 같은 자리의 정지 화면만 그리고, 창이 가려지면 쉰다. 남는 높이가 120px 미만이면 그리지 않는다.
+const city = { rows: [], hours: HOURS, top: 1, h: {}, t0: performance.now(), last: 0, prev: 0 };
+function cityData(rows, filled, top, first, cuts) {
+  city.rows = filled ? rows.map(r => ({ k: r.k, pct: r.pct, first: first.includes(r.k), done: S.step === LAST && has(S.done, r.k), cut: cuts.includes(r.k) })) : [];
+  city.hours = has(S.minus, 4) ? HOURS / 2 : HOURS;
+  city.top = top || 1;
+  drawCity(performance.now());
+}
+function drawCity(now) {
+  const box = $('deep'), cv = $('city');
+  if (!box || !cv) return;
+  const W = cv.clientWidth, H = cv.clientHeight, show = !full && W >= 240 && H >= 120;
+  box.classList.toggle('on', show);
+  if (!show) { if (cv.width) cv.width = 0; return; }
+  const r = cv.getBoundingClientRect(), dpr = Math.min(2, devicePixelRatio || 1);
+  const bw = Math.round(r.width * dpr), bh = Math.round(r.height * dpr);
+  if (cv.width !== bw || cv.height !== bh) { cv.width = bw; cv.height = bh; }
+  const g = cv.getContext('2d');
+  g.setTransform(bw / W, 0, 0, bh / H, 0, 0);
+  g.clearRect(0, 0, W, H);
+  const calmNow = still(), t = calmNow ? 1.5 : (now - city.t0) / 1000;
+  const dt = Math.min(0.1, (now - (city.prev || now)) / 1000); city.prev = now;
+  const font = getComputedStyle(document.body).fontFamily;
+  const rows = city.rows, n = rows.length;
+  const usable = W - 36, sp = usable / Math.max(n, 1), half = Math.max(6, Math.min(18, sp * 0.2));
+  const stagger = n > 1 && sp < 86;
+  const yaw = 0.18 + 0.14 * Math.sin(t * 0.4), cs = Math.cos(yaw), sn = Math.sin(yaw);
+  const tilt = usable / 2 * Math.sin(0.32) * 0.42, topPad = 44, botPad = stagger ? 36 : 22;
+  const avail = H - topPad - botPad - 2 * tilt, maxH = Math.max(18, Math.min(240, avail));
+  const baseY = H - botPad - tilt - Math.max(0, avail - maxH) / 2, cx = W / 2;
+  const P = (x, y, z) => [cx + x * cs - y * sn, baseY + (x * sn + y * cs) * 0.42 - z];
+  const path = pts => { g.beginPath(); pts.forEach((q, i) => (i ? g.lineTo(q[0], q[1]) : g.moveTo(q[0], q[1]))); g.closePath(); };
+  // 바닥 격자
+  const fx = usable / 2 + sp / 2, fy = 46;
+  g.lineWidth = 1; g.strokeStyle = 'rgba(34, 211, 238, .16)';
+  for (let x = -fx; x <= fx + 0.1; x += Math.max(24, sp / 2)) { g.beginPath(); g.moveTo(...P(x, -fy, 0)); g.lineTo(...P(x, fy, 0)); g.stroke(); }
+  for (let y = -fy; y <= fy + 0.1; y += fy / 2) { g.beginPath(); g.moveTo(...P(-fx, y, 0)); g.lineTo(...P(fx, y, 0)); g.stroke(); }
+  // 제목과 범례
+  g.textBaseline = 'alphabetic'; g.font = `700 11px ${font}`; g.textAlign = 'left'; g.fillStyle = '#a5f3fc';
+  g.fillText(`역량 도시 · ${city.hours}시간 기준`, 10, 16);
+  g.font = `600 10px ${font}`; g.textAlign = 'right'; g.fillStyle = '#94a3b8';
+  g.fillText('높이 = 배분 % · 분홍 = 먼저 · 초록 = 완료', W - 10, 16);
+  if (!n) {
+    g.textAlign = 'center'; g.font = `600 11px ${font}`; g.fillStyle = '#94a3b8';
+    g.fillText('전문가를 고르면 배울 역량이 막대로 섭니다', cx, baseY - 10);
+    city.h = {}; return;
+  }
+  const seen = {};
+  const items = rows.map((q, i) => {
+    const target = Math.max(6, q.pct / city.top * maxH), cur = city.h[q.k] ?? 0;
+    const h = calmNow ? target : cur + (target - cur) * Math.min(1, dt * 5);
+    seen[q.k] = h;
+    return { ...q, i, x: (i - (n - 1) / 2) * sp, h };
+  });
+  city.h = seen;
+  items.sort((a, b) => P(a.x, 0, 0)[1] - P(b.x, 0, 0)[1]);
+  for (const it of items) {
+    const rgb = it.done ? '74, 222, 128' : it.first ? '244, 114, 182' : '34, 211, 238';
+    const corners = [[-half, -half], [half, -half], [half, half], [-half, half]].map(([a, b]) => [it.x + a, b]);
+    g.globalAlpha = it.cut ? 0.45 : 1;
+    g.setLineDash(it.cut ? [3, 3] : []);
+    g.strokeStyle = it.cut ? 'rgba(251, 113, 133, .9)' : `rgba(${rgb}, .75)`;
+    for (let k = 0; k < 4; k++) {
+      const a = corners[k], b = corners[(k + 1) % 4];
+      path([P(a[0], a[1], 0), P(b[0], b[1], 0), P(b[0], b[1], it.h), P(a[0], a[1], it.h)]);
+      g.fillStyle = `rgba(${rgb}, .14)`; g.fill(); g.stroke();
+    }
+    g.shadowColor = `rgb(${rgb})`; g.shadowBlur = 12;
+    path(corners.map(c => P(c[0], c[1], it.h))); g.fillStyle = `rgba(${rgb}, .7)`; g.fill(); g.stroke();
+    g.shadowBlur = 0; g.setLineDash([]);
+    if (!calmNow) for (let k = 0; k < 2; k++) { // 막대 안에서 빛 알갱이가 올라간다
+      const z = ((t * 0.5 + k / 2 + it.k * 0.37) % 1) * it.h, q = P(it.x, 0, z);
+      g.fillStyle = 'rgba(255, 255, 255, .85)'; g.beginPath(); g.arc(q[0], q[1], 1.5, 0, 7); g.fill();
+    }
+    g.globalAlpha = 1;
+    const top = P(it.x, -half, it.h), base = P(it.x, half, 0);
+    g.textAlign = 'center';
+    g.font = `700 10.5px ${font}`; g.fillStyle = it.done ? '#86efac' : it.first ? '#f9a8d4' : '#a5f3fc';
+    g.fillText(`${(it.pct * city.hours / 100).toFixed(1)}시간`, top[0], top[1] - 6);
+    g.font = `600 10.5px ${font}`; g.fillStyle = '#e2e8f0';
+    g.fillText(SKILLS[it.k], base[0], base[1] + 14 + (stagger && it.i % 2 ? 14 : 0));
+  }
+}
+function cityLoop(now) {
+  requestAnimationFrame(cityLoop);
+  if (document.hidden || still() || now - city.last < 33) return; // 약 30장/초
+  city.last = now; drawCity(now);
+}
+
 function paint(filled = true) {
   if (full) return paintFull();
   if (replaying) filled = false;
@@ -1134,6 +1232,7 @@ function paint(filled = true) {
     skillWire[k]?.classList.toggle('on', Boolean(filled && r));
     skillWire[k]?.classList.toggle('cut', cuts.includes(k));
   });
+  cityData(rows, filled, top, first, cuts);
   const learned = rows.reduce((s, r) => s + (has(S.done, r.k) ? r.pct : 0), 0), complete = !mapFree && S.step === LAST && filled && rows.length && learned === 100;
   stage.classList.toggle('complete', Boolean(complete));
   $('mapGoals').hidden = !mapFree || !S.goals.length;
@@ -1447,7 +1546,7 @@ $('mapReset').addEventListener('click', () => {
 $('motionBtn').addEventListener('click', () => {
   motionPref = still() ? 'on' : 'off';
   try { localStorage.setItem('experience-ai-motion', motionPref); } catch { /* 기억하지 못해도 이번 화면에는 적용 */ }
-  motionView(); drawWires();
+  motionView(); drawWires(); drawCity(performance.now());
 });
 $('mapPlay').addEventListener('click', () => { freeMap(); playMap(); });
 $('exp').addEventListener('input', e => { S.exp = e.target.value; save(); });
@@ -1563,6 +1662,8 @@ $('fontBtn').addEventListener('click', e => {
   e.target.textContent = big ? '글자 보통' : '글자 크게';
 });
 new ResizeObserver(drawWires).observe(stage);
+new ResizeObserver(() => drawCity(performance.now())).observe($('deep'));
+requestAnimationFrame(cityLoop);
 // 화면 크기에 맞춰 앱 전체를 키우고 줄인다 (기준 1366×768 = 100%, 85~180%). 좁은 화면은 위아래 배치라 그대로
 function fitScreen() {
   const z = innerWidth >= 900 ? Math.min(1.8, Math.max(0.85, Math.min(innerWidth / 1366, innerHeight / 768))) : 1;
