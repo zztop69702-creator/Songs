@@ -94,7 +94,9 @@ textarea { min-height: 96px; resize: vertical }
 #stage > .hub span { display: block; font-size: .64rem; color: #cbd5e1; white-space: nowrap }
 #stage.complete > .hub strong { color: #4ade80; text-shadow: 0 0 10px #4ade80 }
 #sources { grid-column: 1; grid-row: 2; align-self: center; display: grid; gap: 14px; position: relative; z-index: 1 }
-.src { position: relative; padding: 5px 9px; border-radius: 10px; color: #fff; overflow: hidden; border: 1.5px solid; line-height: 1.25 }
+.src { position: relative; padding: 5px 9px; border-radius: 10px; color: #fff; overflow: hidden; border: 1.5px solid; line-height: 1.25; animation: src-breathe 2.8s ease-in-out infinite }
+@keyframes src-breathe { 50% { filter: brightness(1.25); transform: translateX(2px) } }
+:root.motion-off .src { animation: none }
 .src b { display: block; font-size: .78rem } .src small { display: block; font-size: .62rem; opacity: .85 }
 .src .bin { display: block; font: .56rem/1.2 monospace; letter-spacing: 1px; white-space: nowrap; opacity: .85; animation: bin 7s linear infinite }
 @keyframes bin { to { transform: translateX(-50%) } }
@@ -410,6 +412,7 @@ input[type="text"], textarea, select { border-radius: 14px }
         <button class="line-btn" id="mapReset" type="button">지도 비우기</button>
         <button class="line-btn" id="motionBtn" type="button" aria-pressed="true">움직임 끄기</button>
         <button class="line-btn" id="mapClose" type="button" hidden>내 지도로</button>
+        <button class="line-btn" id="mapGoals" type="button" hidden>내 목표 보기</button>
       </div>
     </section>
     <div class="jobs" id="jobs"></div>
@@ -944,8 +947,11 @@ function fitMap() {
   }
 }
 // 출발점: 전체 지도에서는 방금 쌓은 3명, 내 지도에서는 목표 1~3순위 다음 관심 전문가 (최대 3)
+// 탐색 모드: '지도 비우기' 뒤 1쪽은 목표(①②③) 없이 새로 고른 전문가만 보여 준다. 2쪽 답과 결과 카드는 그대로
+let mapFree = false;
 function sourceList() {
   if (full) return [...picked].slice(-3);
+  if (mapFree) return S.picks.slice(0, 3);
   return [...S.goals, ...S.picks.filter(j => !S.goals.includes(j))].slice(0, 3);
 }
 const binary = j => { const s = ((j + 7) * 2654435761 >>> 0).toString(2).padStart(32, '0'); return s + s; };
@@ -1009,7 +1015,7 @@ function fly(path, tick = false) {
 $('jobs').classList.add('grid30');
 $('jobs').innerHTML = CATS.map(c => `<div class="cat"><b>${c.n}</b>${c.j.map(j =>
   `<button class="job mini" type="button" data-job="${j}" aria-pressed="false" title="${JOBS[j].n}"><small>${NUM[j]}</small><b>${SHORT[j]}</b><em></em></button>`).join('')}</div>`).join('');
-const isActive = j => full ? picked.has(j) : S.picks.includes(j) || S.goals.includes(j);
+const isActive = j => full ? picked.has(j) : mapFree ? S.picks.includes(j) : S.picks.includes(j) || S.goals.includes(j);
 // 이전 저장값·예시처럼 1순위만 있는 경우를 목표 순위로 맞춘다
 function syncGoals() { if (!S.goals.length && S.choice !== null) S.goals = [S.choice]; S.choice = S.goals[0] ?? null; if (S.lastChoice === undefined || S.lastChoice === null) S.lastChoice = S.choice; }
 
@@ -1072,7 +1078,7 @@ function stepList() {
 }
 
 // 지금까지의 답으로 계산한 배울 것: 목표가 정해지면 목표 기준(2쪽 카드와 같은 값), 그 전에는 1쪽에서 고른 전문가 합산
-const rowsNow = () => S.choice !== null ? personalRows() : S.picks.length && S.groups.every(g => GROUPS[g]) ? personalRows(S.picks) : [];
+const rowsNow = () => S.choice !== null && !mapFree ? personalRows() : S.picks.length && S.groups.every(g => GROUPS[g]) ? personalRows(S.picks) : [];
 // 단계별로 더해진 조건 (1쪽에 항상 표시)
 const CONDS = [['경력', () => S.groups.length], ['경험', () => S.expType !== null], ['일하는 방식', () => S.sides.some(n => n !== null)], ['관심 전문가', () => S.picks.length],
   ['목표', () => S.choice !== null], ['자가진단', () => Object.keys(S.self).length], ['적용 조건', () => S.checks.length], ['도움·돌발', () => S.plus.length + S.minus.length]];
@@ -1091,7 +1097,7 @@ function paintMine(rows) {
   const rec = S.groups.length ? ranked() : [], extra = extraRecs();
   document.querySelectorAll('.job').forEach(e => {
     const j = Number(e.dataset.job), r = rec.indexOf(j);
-    const g = S.goals.indexOf(j);
+    const g = mapFree ? -1 : S.goals.indexOf(j);
     e.querySelector('em').textContent = g >= 0 ? ['①', '②', '③'][g] : r >= 0 ? `★${r + 1}` : extra.includes(j) ? '☆' : '';
     e.classList.toggle('goal', g === 0);
     e.classList.toggle('goal2', g > 0);
@@ -1127,9 +1133,11 @@ function paint(filled = true) {
     skillWire[k]?.classList.toggle('on', Boolean(filled && r));
     skillWire[k]?.classList.toggle('cut', cuts.includes(k));
   });
-  const learned = rows.reduce((s, r) => s + (has(S.done, r.k) ? r.pct : 0), 0), complete = S.step === LAST && filled && rows.length && learned === 100;
+  const learned = rows.reduce((s, r) => s + (has(S.done, r.k) ? r.pct : 0), 0), complete = !mapFree && S.step === LAST && filled && rows.length && learned === 100;
   stage.classList.toggle('complete', Boolean(complete));
-  $('hubText').textContent = S.step === LAST && filled && rows.length
+  $('mapGoals').hidden = !mapFree || !S.goals.length;
+  $('hubText').textContent = mapFree ? (rows.length ? `탐색 중 · 배울 것 ${rows.length}가지` : '탐색 중 · 전문가를 고르세요')
+    : S.step === LAST && filled && rows.length
     ? (complete ? `정의 완성 · ${LEVELS[finalLevel()].t}` : `${LEVELS[finalLevel()].t} · 학습 ${learned}%`)
     : S.step === 7 || S.step === LAST ? LEVELS[finalLevel()].t : rows.length ? '배울 것 ' + rows.length + '가지' : '전문가를 고르세요';
 }
@@ -1345,6 +1353,7 @@ function show() {
   const leaf = pageLeaf(), top = inner ? flowPage.scrollTop : scrollY;
   mapRun++; mapPlaying = false;
   full = false;
+  if (S.step === 4 || S.step === LAST) mapFree = false;
   syncGoals();
   document.querySelectorAll('[data-step]').forEach(s => { s.hidden = Number(s.dataset.step) !== S.step; });
   document.querySelector('.app').classList.toggle('both', S.step === 4 || S.step === 7);
@@ -1403,12 +1412,13 @@ function setDoc(on) {
   $('fullDoc').hidden = !on;
   document.querySelector('.flow-page:not(.leaf)').scrollTop = 0; scrollTo(0, 0);
 }
-function toSummary() { if (full) { mapRun++; mapPlaying = false; full = false; mapView(); } setDoc(false); playConclusion(); }
+function toSummary() { if (full) { mapRun++; mapPlaying = false; full = false; mapView(); } mapFree = false; setDoc(false); playConclusion(); }
 $('replay').addEventListener('click', toSummary);
 $('toSummary').addEventListener('click', toSummary);
 $('openDoc').addEventListener('click', () => setDoc(true));
 $('copyPrompt2').addEventListener('click', () => copy($('prompt').value, '지침문을 복사했습니다.'));
 $('mapClose').addEventListener('click', () => { mapRun++; mapPlaying = false; full = false; mapView(); });
+$('mapGoals').addEventListener('click', () => { mapFree = false; clearInfo(); rebuildMap(); });
 $('cardMap').addEventListener('click', () => { freeMap(); setPage('map'); });
 // 내 지도에서는 고른 전문가를 비우고, 전체 지도에서는 쌓은 것을 비운다
 // 내 지도: 관심 전문가를 비우고 칸·빛줄기를 0에서 다시 쌓는다. 목표(①②③)는 2쪽 5단계 답이라 남아서 다시 이어진다
@@ -1425,12 +1435,13 @@ async function rebuildMap() {
 }
 $('mapReset').addEventListener('click', () => {
   if (full) { clearMap(); return; }
-  const had = S.picks.length;
+  // 1쪽을 완전히 비운다. 목표(①②③)는 2쪽 답이라 결과 카드에는 그대로 남고, '내 목표 보기'로 다시 볼 수 있다
   S.picks = []; save(); if (S.step === 4) ENTER[4]();
-  showInfo(S.goals.length
-    ? `<b>${had ? '관심 전문가를 비웠습니다.' : '비울 관심 전문가가 없습니다.'}</b> ①②③ 목표는 2쪽 5단계 답이라 남아 다시 이어집니다. 목표를 바꾸려면 5단계에서 다시 누르세요.`
+  mapFree = S.goals.length > 0;
+  showInfo(mapFree
+    ? '<b>1쪽 지도를 비웠습니다.</b> 전문가를 눌러 자유롭게 탐색해 보세요. 2쪽 목표(①②③)와 결과는 그대로이며, \'내 목표 보기\'를 누르면 다시 나타납니다.'
     : '<b>지도를 비웠습니다.</b> 관심 전문가를 다시 누르면 새로 이어집니다.');
-  rebuildMap();
+  lastFlow = Date.now(); drawWires();
 });
 $('motionBtn').addEventListener('click', () => {
   motionPref = still() ? 'on' : 'off';
@@ -1477,7 +1488,7 @@ $('jobs').addEventListener('click', e => {
   if (S.picks.includes(j)) { S.picks = S.picks.filter(x => x !== j); showInfo(jobInfo(j)); save(); if (S.step === 4) ENTER[4](); drawWires(); return; }
   if (S.picks.length >= 3) { showInfo(`<b>최대 3명까지 고를 수 있습니다.</b><p>이미 고른 전문가(${S.picks.map(x => NUM[x]).join(', ')}번)를 다시 눌러 빼고 고르세요.</p>`); return; }
   S.picks = [...S.picks, j]; save();
-  showInfo(jobInfo(j) + (S.choice !== null ? '<p class="help">1쪽 빛줄기에 더했습니다. 배울 것과 시간은 1순위 목표 기준이며, 계산에 넣으려면 2쪽 5단계에서 목표로 고르세요.</p>' : ''));
+  showInfo(jobInfo(j) + (mapFree ? '<p class="help">탐색 중: 1쪽에서 고른 전문가만으로 보여 줍니다. 2쪽 결과는 목표 기준 그대로입니다.</p>' : S.choice !== null ? '<p class="help">1쪽 빛줄기에 더했습니다. 배울 것과 시간은 1순위 목표 기준이며, 계산에 넣으려면 2쪽 5단계에서 목표로 고르세요.</p>' : ''));
   if (S.step === 4) ENTER[4]();
   flowFrom(j);
 });
@@ -1486,6 +1497,7 @@ $('jobChoices').addEventListener('click', e => {
   const b = e.target.closest('[data-cand]');
   if (!b) return;
   const j = Number(b.dataset.cand);
+  mapFree = false;
   // 누르는 순서대로 1~3순위. 다시 누르면 빠지고 뒤 순위가 올라온다
   if (S.goals.includes(j)) S.goals = S.goals.filter(x => x !== j);
   else if (S.goals.length >= 3) { $('navMsg').textContent = '1~3순위까지 고를 수 있습니다. 하나를 다시 눌러 뺀 뒤 고르세요.'; return; }
