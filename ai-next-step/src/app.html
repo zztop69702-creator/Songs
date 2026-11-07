@@ -306,6 +306,13 @@ body { margin: 0; background: linear-gradient(135deg, var(--sky), var(--mint)); 
 @media (max-width: 620px) { #stage.two { grid-template-columns: minmax(150px, 46%) minmax(10px, 1fr) minmax(118px, 40%) !important }
   .pick-mode button { font-size: .74rem; padding: 3px 6px; gap: 4px } .pick-mode button b { white-space: nowrap } #sources .src-head span { display: none } }
 #dream small { display: block } #dream .hope { color: #fde68a; font-weight: 700 }
+#dream.hoped { position: relative; overflow: hidden; padding: 9px 11px; border-radius: 14px; background: linear-gradient(135deg, rgba(34, 211, 238, .12), rgba(232, 121, 249, .10)); border: 1px solid rgba(165, 243, 252, .55); box-shadow: 0 0 18px rgba(34, 211, 238, .3), inset 0 0 14px rgba(232, 121, 249, .12) }
+#dream .dream-tag { display: inline-block; padding: 2px 9px; border-radius: 999px; background: #fbbf24; color: #1f2937; font-size: .66rem; font-weight: 800 }
+#dream b.dream-want { margin: 6px 0 5px; font-size: 1.14rem; line-height: 1.28; background: linear-gradient(90deg, #a5f3fc, #f0abfc 55%, #fde68a); -webkit-background-clip: text; background-clip: text; color: transparent; text-shadow: none; filter: drop-shadow(0 0 7px rgba(34, 211, 238, .55)) }
+#dream small i { font-style: normal; font-weight: 800; color: #a5f3fc; margin-right: 5px }
+#dream.hoped::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(110deg, transparent 35%, rgba(255, 255, 255, .2) 50%, transparent 65%); transform: translateX(-100%); animation: dream-shine 5s ease-in-out infinite }
+@keyframes dream-shine { 0%, 60% { transform: translateX(-100%) } 100% { transform: translateX(100%) } }
+:root.motion-off #dream.hoped::after { display: none }
 .hope-box { margin: 8px 0 12px; padding: 10px 14px; border-left: 4px solid var(--accent); border-radius: 10px; background: rgba(52, 120, 246, .06) }
 .hope-box p { margin: 3px 0; line-height: 1.5 } .hope-box small { display: inline-block; min-width: 7em; margin-right: 8px; color: var(--muted); font-weight: 700 }
 .hope-box .hope { color: #b45309; font-weight: 700 }
@@ -1186,11 +1193,13 @@ const HOPE_LINE = '희망은 멀지 않습니다. 지금의 경험에 AI를 곱�
 function dreamHtml(rows) {
   const h = hope(rows);
   if (!h) return '<small>1단계 하고 싶은 것을 최대 4개 누르면</small><b>당신이 되고 싶은 AI 전문가</b><small>를 보여 드립니다. 2단계에 하고 있는 일을 더하면 가는 방향이 나옵니다.</small>';
-  return `<small>${h.now ? `지금 '${esc(h.now)}' 일을 하는 당신이 ` : '당신이 '}되고 싶은 모습</small><b>“${h.want}”</b>`
-    + `<small>가는 방향 · AI 교육 ${h.hours}시간: ${h.path.slice(0, 2).join(' → ')}</small><small class="hope">${HOPE_LINE}</small>`;
+  return `<span class="dream-tag">✦ 내가 되고 싶은 모습</span><b class="dream-want">“${h.want}”</b>`
+    + (h.now ? `<small><i>지금</i>${esc(h.now)}</small>` : '')
+    + `<small><i>가는 방향</i>AI 교육 ${h.hours}시간 · ${h.path.slice(0, 2).join(' → ')}</small><small class="hope">✦ ${HOPE_LINE}</small>`;
 }
 function paintMine(rows) {
   const dh = dreamHtml(rows);
+  $('dream').classList.toggle('hoped', dh.includes('dream-want'));
   if ($('dream').dataset.html !== dh) { $('dream').dataset.html = dh; $('dream').innerHTML = dh; $('dream').classList.remove('new'); void $('dream').offsetWidth; $('dream').classList.add('new'); }
   const on = CONDS.filter(([, f]) => f());
   $('condCount').textContent = `${on.length} / ${CONDS.length}`;
