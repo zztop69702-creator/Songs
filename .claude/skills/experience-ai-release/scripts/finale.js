@@ -4,7 +4,7 @@ const [file, out] = process.argv.slice(2);
   const b = await chromium.launch();
   const p = await b.newPage({ viewport: { width: 1366, height: 768 }, reducedMotion: 'no-preference' });
   const errs = []; p.on('pageerror', e => errs.push(e.message)); p.on('console', m => m.type() === 'assert' && errs.push(m.text()));
-  await p.goto('file://' + file);
+  await p.goto(require('url').pathToFileURL(require('path').resolve(file)).href);
   await p.evaluate(s => localStorage.setItem('experience-ai-map-v1', JSON.stringify(s)), { step: 8, name: '송유성', groups: [1, 2], expType: 1, sides: [0, 1, 0, 0], choice: 6, goals: [6, 26, 24], picks: [1, 23], self: { 0: 4, 3: 2, 5: 5, 7: 2 }, checks: [0, 1, 3, 4, 5], plus: [0], minus: [] });
   await p.reload(); await p.waitForTimeout(500);
   await p.click('#next');

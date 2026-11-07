@@ -7,7 +7,7 @@ const st = { step: 9, name: '송유성', groups: [0, 1], expType: 2, sides: [1, 
   for (const [w, h] of [[1366, 768], [1920, 1080], [2560, 1440], [1280, 720]]) {
     const p = await b.newPage({ viewport: { width: w, height: h }, reducedMotion: 'no-preference' });
     const errs = []; p.on('pageerror', e => errs.push(e.message)); p.on('console', m => m.type() === 'assert' && errs.push(m.text()));
-    await p.goto('file://' + file);
+    await p.goto(require('url').pathToFileURL(require('path').resolve(file)).href);
     await p.evaluate(s => localStorage.setItem('experience-ai-map-v1', JSON.stringify(s)), st);
     await p.reload(); await p.waitForTimeout(4500); // 결론 재생이 끝나고 실시간 흐름이 시작될 때까지
     const m = await p.evaluate(() => {

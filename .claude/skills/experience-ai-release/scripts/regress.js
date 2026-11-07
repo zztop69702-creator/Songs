@@ -13,7 +13,7 @@ const scen = [
     for (const sc of scen) {
       const ctx = await b.newContext({ viewport: { width: 1366, height: 900 } }), p = await ctx.newPage();
       const errs = []; p.on('pageerror', e => errs.push(e.message)); p.on('console', m => m.type() === 'assert' && errs.push(m.text()));
-      await p.goto('file://' + file);
+      await p.goto(require('url').pathToFileURL(require('path').resolve(file)).href);
       if (sc.s) { await p.evaluate(s => localStorage.setItem('experience-ai-map-v1', JSON.stringify(s)), sc.s); await p.reload(); }
       else await p.click('#sample');
       await p.waitForTimeout(400);

@@ -4,7 +4,7 @@ const fs = require('fs');
 (async () => {
   const b = await chromium.launch(); const p = await b.newPage(); const errs = [];
   p.on('pageerror', e => errs.push(e.message)); p.on('console', m => m.type() === 'assert' && errs.push(m.text()));
-  await p.goto('file://' + process.argv[2]); await p.waitForTimeout(300);
+  await p.goto(require('url').pathToFileURL(require('path').resolve(process.argv[2])).href); await p.waitForTimeout(300);
   const d = await p.evaluate(() => {
     const reach = new Set(); const sidesSet = [[null, null, null, null], [0, 0, 0, 0], [1, 1, 1, 1], [0, 1, 0, 1], [1, 0, 1, 0]];
     GROUPS.forEach((_, a) => GROUPS.forEach((_, c) => [0, 1, 2, 3, 4].forEach(e => sidesSet.forEach(sd => {

@@ -7,7 +7,7 @@
 #   2) 빌드: build.py 로 <결과 폴더>/dist 에 시험용으로 만든다 (배포 폴더 ai-next-step/dist 는 건드리지 않는다)
 #   3) 검사: 흐름(smoke) · 결과카드 비교(regress) · 화면 맞춤과 흐르는 점(layout_flow)
 #           · 실제 클릭(verify_clicks) · 10단계 재생/정의 완성(finale) · 다운로드 버튼(download_button)
-#           · 지도 비우기 확인 창(reset_all) · 3D 역량 도시(city3d)
+#           · 지도 비우기 확인 창(reset_all) · 3D 역량 도시(city3d) · 해 본 역할(have_roles)
 # 각 검사는 'ERRORS' 또는 '오류' 줄에 앱 오류(스크립트 오류 + 앱 안 자동검사 실패)를 찍는다. 모두 비어 있어야 통과.
 set -u
 ROOT=${1:?저장소 루트}; OUT=${2:?결과 폴더}
@@ -28,4 +28,5 @@ echo "--- 실제 클릭(verify_clicks, 배포 파일)"; node "$HERE/verify_click
 echo "--- 10단계 재생·정의 완성(finale)"; node "$HERE/finale.js" "$APP/src/app.html" "$OUT" 2>&1 | grep -E '모두 체크|ERRORS'
 echo "--- 지도 비우기 확인 창(reset_all)"; node "$HERE/reset_all.js" "$APP/src/app.html" "$OUT" 2>&1
 echo "--- 3D 역량 도시(city3d)"; node "$HERE/city3d.js" "$APP/src/app.html" "$OUT" 2>&1
+echo "--- 해 본 역할 8개(have_roles)"; node "$HERE/have_roles.js" "$APP/src/app.html" "$OUT" 2>&1
 echo "--- 다운로드 버튼(download_button)"; node "$HERE/download_button.js" "$DIST/online.html" "$OUT/online_top.png" "$APP/src/app.html" 2>&1

@@ -7,7 +7,7 @@ const [file, out] = process.argv.slice(2);
     const ctx = await b.newContext({ viewport: { width: 1366, height: 768 }, reducedMotion: motion, deviceScaleFactor: motion === 'reduce' ? 1 : 2 });
     const p = await ctx.newPage();
     const errs = []; p.on('pageerror', e => errs.push(e.message)); p.on('console', m => m.type() === 'assert' && errs.push(m.text()));
-    await p.goto('file://' + file);
+    await p.goto(require('url').pathToFileURL(require('path').resolve(file)).href);
     // 사용자 상태: 10단계, 목표 ① 16 시설운영개선, 돌발 '업무 시간 부족', 관심 전문가 없음
     await p.evaluate(s => { localStorage.clear(); localStorage.setItem('experience-ai-map-v1', JSON.stringify(s)); }, { step: 9, name: '송유성', groups: [0, 1], expType: 2, sides: [1, 1, 0, 1], choice: 4, goals: [4], picks: [], self: {}, checks: [0, 1, 3, 5], plus: [], minus: [4] });
     await p.reload(); await p.waitForTimeout(3800);
