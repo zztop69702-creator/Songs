@@ -16,5 +16,8 @@
 | T-0009 | 2026-11-10 | BUILD | 〃 | `gradle :app:lintDebug` | 오류 0, 경고 4 (targetSdk 36, 세로고정 2, allowBackup) | 허용 (DECISIONS D-010, D-018) |
 | T-0010 | 2026-11-10 | JVM-UI | Robolectric 4.16.1, SDK 35 | `gradle :app:testDebugUnitTest` | **7 / 7 통과**: 홈·면책표시, 현장 등록 검증·저장, 측정 JSON·수동 마커 재표시, 원본 덮어쓰기 거부, 기기진단 JSON 생성, 하드웨어 없는 환경에서 측정화면 비정상종료 없음, V2 보정 설정 단계 필수조건 | 화면 흐름 확인. 카메라·마이크 실동작은 미검증 |
 | T-0011 | 2026-11-10 | ENV | 〃 | Robolectric android-all jar | Maven Central 429(요청 제한) → Google Maven Central 미러에서 수신, SHA-1 일치 확인 | — |
+| T-0012 | 2026-11-10 | UNIT/SIM | 컨테이너 JVM | `gradle :core:test` (연속판독 추가) | **43 / 43 통과** (연속판독 6건 추가) | 합성 데이터 기준 |
+| T-0013 | 2026-11-10 | JVM-UI | Robolectric | `gradle :app:testDebugUnitTest` | 1차 1건 실패: 보정 단계 전환 후 제목이 화면 밖 (스크롤 위치 유지 결함) → 수정 후 **7 / 7 통과** | 결함 수정 (D-022) |
+| T-0014 | 2026-11-10 | BUILD | 〃 | `assembleDebug`, `lintDebug` | APK 36.7 MB, Lint 오류 0 / 경고 5 (ChromeOsAbiSupport 추가: ARM 전용 설정에 따른 것) | — |
 
 실기기 시험: **0건** (TEST_PLAN P0-01 ~ P0-10, P1-04·06·07·08, V2-D01 ~ D05 미실시)

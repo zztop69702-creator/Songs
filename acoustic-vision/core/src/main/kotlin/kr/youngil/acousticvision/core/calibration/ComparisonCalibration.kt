@@ -27,13 +27,19 @@ data class CalibrationThresholds(
     val intervalMatchToleranceSec: Double = 0.5,
     val referenceMinDb: Double = 20.0,
     val referenceMaxDb: Double = 140.0,
+    /** 영상 연속판독: 최소 유효 판독 수 / 유효 비율 / 잔차 표준편차 상한 */
+    val seriesMinSamples: Int = 10,
+    val seriesMinValidRatio: Double = 0.5,
+    val seriesMaxResidualStdDb: Double = 0.7,
     val provisional: Boolean = true,
 )
 
 @Serializable
 enum class CalibrationMode {
-    /** 소음계의 구간 LAeq 결과와 비교 (기본) */
+    /** 소음계의 구간 LAeq 결과와 비교 (적분형 소음계) */
     LAEQ_COMPARISON,
+    /** 비적분형 소음계: 화면을 촬영하며 연속 OCR → 같은 시각·같은 시간가중 앱 레벨과 1:1 비교 (예: TES-1350A) */
+    VIDEO_SERIES,
     /** 소음계가 LAeq 미지원: 매우 안정된 소음에서 순간값 비교 — 정확도 한계 명시 */
     SIMPLE_INSTANT,
 }
@@ -198,6 +204,8 @@ data class ComparisonRecord(
     val windowStartEpochMs: Long,
     val windowEndEpochMs: Long,
     val blockReasons: List<BlockReason>,
+    /** VIDEO_SERIES 모드의 연속 비교 결과 */
+    val series: SeriesResult? = null,
 )
 
 @Serializable
@@ -214,8 +222,17 @@ object OffsetCalculator {
     fun offset(referenceDb: Double, appDbFs: Double): Double = referenceDb - appDbFs
 
     fun validate(offsetDb: Double, comparison: ComparisonRecord, t: CalibrationThresholds = CalibrationThresholds()): ValidationRecord {
-        val predicted = comparison.analysis.laeqDbFs + offsetDb
-        val err = predicted - comparison.reading.valueDb
+        val series = comparison.series
+        val predicted: Double
+        val err: Double
+        if (series != null) {
+            // 연속판독: 검증 구간에서 필요한 오프셋과 보정 오프셋의 차이
+            predicted = series.appMedianDbFs + offsetDb
+            err = SeriesComparator.validationError(offsetDb, series)
+        } else {
+            predicted = comparison.analysis.laeqDbFs + offsetDb
+            err = predicted - comparison.reading.valueDb
+        }
         val passed = comparison.blockReasons.isEmpty() && abs(err) <= t.validationToleranceDb
         return ValidationRecord(comparison, predicted, err, t.validationToleranceDb, passed)
     }
@@ -266,7 +283,11 @@ data class CalibrationProfile(
         referenceValueDb = comparison.reading.valueDb,
         measuredDbFs = comparison.analysis.laeqDbFs,
         calibratedAtEpochMs = createdAtEpochMs,
-        note = "스마트 비교보정 V2 · ${if (mode == CalibrationMode.SIMPLE_INSTANT) "간편 비교모드(정확도 제한)" else "LAeq 구간 비교"}",
+        note = "스마트 비교보정 V2 · " + when (mode) {
+            CalibrationMode.LAEQ_COMPARISON -> "LAeq 구간 비교"
+            CalibrationMode.VIDEO_SERIES -> "영상 연속판독 비교(${comparison.series?.weighting?.label ?: ""})"
+            CalibrationMode.SIMPLE_INSTANT -> "간편 비교모드(정확도 제한)"
+        },
         profileId = profileId,
     )
 

@@ -160,10 +160,12 @@ class AppFlowTest {
             compose.onNode(hasSetTextAction() and hasText("일련번호 *")).performTextInput("00123")
             compose.onNode(hasSetTextAction() and hasText("최근 교정(정도검사)일 * 예: 2026-03-15")).performTextInput("2026-03-15")
             compose.onNodeWithText("다음: 측정").performScrollTo().assertIsNotEnabled()
-            compose.onNodeWithText("두 마이크를 같은 음장", substring = true).performScrollTo().performClick()
+            // 기본 방식: 비적분형 화면 연속판독 (TES-1350A 등)
+            compose.onNodeWithText("음원에서 같은 거리", substring = true).performScrollTo().performClick()
             compose.onNodeWithText("다음: 측정").performScrollTo().assertIsEnabled().performClick()
-            compose.onNodeWithText("측정 시작").assertIsDisplayed()
             compose.onNodeWithText("① 보정 측정").assertIsDisplayed()
+            compose.onNodeWithText("측정 시작").performScrollTo().assertIsDisplayed()
+            compose.onNodeWithText("노란 상자", substring = true).assertExists()
         }
     }
 }
