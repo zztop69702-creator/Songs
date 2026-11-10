@@ -28,7 +28,7 @@
 2. 서명키: 구글 드라이브 `영일음향비전/04_서명키`의 키 ZIP·비밀번호 파일을 세션 작업공간으로 가져옴(저장소에 넣지 않음)
 3. `RELEASE_SEQ=<다음 순번> … tools/build-release.sh` — 시험 → 서명 → 검증 → SHA-256
 4. APK·BUILD_INFO → 드라이브 `01_설치파일`, 소스 ZIP → `05_소스백업`, 문서 ZIP → `03_문서`
-현재 배포: **0.4.0-r2** (versionCode 2002, 2.76 MB, 서명 인증서 SHA-256 `9f21c817…dafdb0cf1`)
+현재 배포: **0.4.0-r3** (versionCode 2003, 2.76 MB, 서명 인증서 SHA-256 `9f21c817…dafdb0cf1`) · 휴대폰 안내: 드라이브 `영일음향비전 (소음비전)/★ 설치·업데이트 방법`
 
 ## 빌드 (Windows · Android Studio)
 - Android Studio 최신 안정판, JDK 17 이상 (Android Studio 내장 JBR 사용 가능)
