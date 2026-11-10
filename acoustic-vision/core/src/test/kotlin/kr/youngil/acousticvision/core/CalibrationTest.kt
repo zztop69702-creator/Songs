@@ -168,8 +168,9 @@ class CalibrationTest {
 
     @Test fun ocrMissingDecimalIsUncertain() {
         val r = MeterOcrParser.parse(listOf(OcrToken("LAeq 725 dBA", 100)))
-        assertEquals(72.5, r.best!!.valueDb, 1e-9)
-        assertTrue(r.best!!.decimalInferred)
+        val best = r.best!!
+        assertEquals(72.5, best.valueDb, 1e-9)
+        assertTrue(best.decimalInferred)
         assertTrue(r.uncertain)
     }
 

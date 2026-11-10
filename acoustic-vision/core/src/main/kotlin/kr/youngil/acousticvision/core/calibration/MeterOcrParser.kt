@@ -98,7 +98,7 @@ object MeterOcrParser {
         if (weighting == null) warnings += "가중특성(A) 표시 미검출"
         if (weighting == false) warnings += "A 이외 가중특성 표시 검출"
         val lowConf = best?.confidence?.let { it < 0.7f } ?: false
-        if (lowConf) warnings += "OCR 신뢰도 낮음 (${best?.confidence})"
+        if (lowConf) warnings += "OCR 신뢰도 낮음 (${best.confidence})"
         val uncertain = best == null || best.decimalInferred || rivals.isNotEmpty() || max || weighting == false || lowConf
         return OcrParseResult(raw, candidates, best, leq, max, instant, weighting, uncertain, warnings)
     }

@@ -207,8 +207,11 @@ class AppFlowTest {
             compose.waitUntil(5_000) { compose.onAllNodes(hasText("LAeq")).fetchSemanticsNodes().isNotEmpty() }
             compose.onNodeWithText("LAeq").assertExists()
             compose.onNodeWithText("‹ 뒤로").performClick()
+            waitText("측정 기록", substring = true) // 현장 상세 (비동기 로딩)
             compose.onNodeWithText("‹ 뒤로").performClick()
+            waitText("보정")
             compose.onNodeWithText("보정").performClick()
+            waitText("스마트 비교보정 (기준 소음계 LAeq)")
             compose.onNodeWithText("스마트 비교보정 (기준 소음계 LAeq)").assertExists()
         }
     }
