@@ -16,12 +16,12 @@
 | 음향교정기 보정 | 외장 측정 마이크 + 94/114 dB 교정기 | 빌드만 확인 |
 | 기기 진단 | UNPROCESSED 지원, AGC/NS 해제, 입력장치 채널수·샘플레이트, 오디오 타임스탬프, 카메라 타임스탬프 기준 → JSON | JVM 화면 시험 통과 (실기기 값 미수집) |
 
-## 설치 (휴대폰만으로)
-절차·보안 주의: [docs/V3_PHASE0_REPORT.md §3](docs/V3_PHASE0_REPORT.md)
-1. GitHub › Actions › "Android APK (Acoustic Vision)" › 최신 성공 실행 › 요약의 SHA-256·서명지문 확인 → Artifacts 다운로드·압축 해제
-2. 현장용은 `…-release.apk`(고정 서명, 업데이트 가능). `…-debug.apk`는 설치 시험용(별도 앱, 업데이트 불가)
-3. 설치 후 **정보·백업** 화면의 서명지문이 빌드 요약과 같은지 확인
-4. 업데이트 전 **전체 데이터 내보내기**
+## 설치 (휴대폰만으로, 구글 드라이브)
+1. 구글 드라이브 › `영일음향비전/01_설치파일` › 최신 `YOUNGIL-AcousticVision-0.4.0-rN-release.apk` 선택 → 설치
+2. 같은 폴더의 `BUILD_INFO` 파일에 적힌 **서명 인증서 SHA-256**이 앱 **정보·백업** 화면 값과 같은지 확인
+3. 업데이트: 새 rN APK를 기존 앱 위에 설치(같은 서명·더 큰 versionCode → 데이터 유지). 업데이트 전 **전체 데이터 내보내기** → `02_데이터백업`에 보관
+4. 시험용(debug, "영일 음향비전 (시험)")은 별도 앱이며 현장 자료를 넣지 말 것
+보안 주의: [docs/V3_PHASE0_REPORT.md §3](docs/V3_PHASE0_REPORT.md)
 
 ## 빌드 (Windows · Android Studio)
 - Android Studio 최신 안정판, JDK 17 이상 (Android Studio 내장 JBR 사용 가능)

@@ -2,10 +2,20 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 // ---- 버전·서명 (V3: 업데이트 시 데이터 보존) ----
 // CI(GitHub Actions)는 CI_BUILD_NUMBER(=run_number)를 넘긴다. versionCode는 항상 증가해야 기존 앱 위에 업데이트된다.
+// 드라이브 배포(정식): RELEASE_SEQ(배포 순번) → versionCode 2000+순번, versionName x.y.z-r순번 (tools/build-release.sh)
 val ciBuildNumber: Int? = System.getenv("CI_BUILD_NUMBER")?.toIntOrNull()
+val releaseSeq: Int? = System.getenv("RELEASE_SEQ")?.toIntOrNull()
 val baseVersionName = "0.4.0"
-val appVersionCode = if (ciBuildNumber != null) 1000 + ciBuildNumber else 4
-val appVersionName = if (ciBuildNumber != null) "$baseVersionName-b$ciBuildNumber" else "$baseVersionName-local"
+val appVersionCode = when {
+    releaseSeq != null -> 2000 + releaseSeq
+    ciBuildNumber != null -> 1000 + ciBuildNumber
+    else -> 4
+}
+val appVersionName = when {
+    releaseSeq != null -> "$baseVersionName-r$releaseSeq"
+    ciBuildNumber != null -> "$baseVersionName-b$ciBuildNumber"
+    else -> "$baseVersionName-local"
+}
 // release 서명키: 저장소에 넣지 않는다. CI secret → 환경변수로만 전달 (값은 로그에 출력하지 않음)
 val releaseKeystore: String? = System.getenv("ANDROID_KEYSTORE_FILE")
 val releaseSigningAvailable = !releaseKeystore.isNullOrBlank() && file(releaseKeystore).exists() &&

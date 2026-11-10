@@ -7,3 +7,9 @@ local.properties
 captures/
 *.apk
 !docs/**/*.apk
+# 서명키는 절대 저장소에 넣지 않음
+*.jks
+*.keystore
+*.p12
+release-key/
+dist/
