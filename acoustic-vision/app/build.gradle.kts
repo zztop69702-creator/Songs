@@ -39,6 +39,9 @@ android {
         versionName = appVersionName
         resValue("string", "app_name", "영일 음향비전")
         buildConfigField("int", "CI_BUILD_NUMBER", (ciBuildNumber ?: 0).toString())
+        // 개인용 배포: 사용자 구글 드라이브 폴더 (비공유 폴더 — 링크만으로는 타인이 열 수 없음)
+        buildConfigField("String", "DRIVE_INSTALL_FOLDER_URL", "\"https://drive.google.com/drive/folders/1gr7Sz9oOPNosNWufxJhq0P3GbyvFVQ_b\"")
+        buildConfigField("String", "DRIVE_BACKUP_FOLDER_URL", "\"https://drive.google.com/drive/folders/143LZtGt9M6ur82_f_SrXoclLF96TBkwC\"")
         // 실제 휴대폰(ARM)만 포함: ML Kit 네이티브 라이브러리 용량 절감 (x86 에뮬레이터 제외)
         ndk {
             abiFilters += listOf("arm64-v8a", "armeabi-v7a")

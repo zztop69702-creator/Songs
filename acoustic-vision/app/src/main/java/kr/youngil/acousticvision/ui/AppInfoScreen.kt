@@ -55,6 +55,15 @@ fun signingCertSha256(context: Context): String? = runCatching {
     certs.firstOrNull()?.let { c -> MessageDigest.getInstance("SHA-256").digest(c).joinToString("") { "%02x".format(it) } }
 }.getOrNull()
 
+/** 구글 드라이브 앱(또는 브라우저)으로 폴더 열기. 앱 자체는 인터넷 권한 없이 다른 앱에 위임만 한다. */
+fun openUrl(context: Context, url: String, onError: (String) -> Unit) {
+    try {
+        context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url)).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
+    } catch (e: android.content.ActivityNotFoundException) {
+        onError("구글 드라이브 앱이나 브라우저를 찾을 수 없습니다")
+    }
+}
+
 /** 앱 정보·데이터 백업 (V3: 버전·서명 확인, 업데이트 전 내보내기, 재설치 후 복원) */
 @Composable
 fun AppInfoScreen(nav: Navigator) {
@@ -120,6 +129,18 @@ fun AppInfoScreen(nav: Navigator) {
             SelectionContainer { Text(cert ?: "확인 불가", color = AvColors.Text, fontFamily = FontFamily.Monospace, fontSize = 11.sp) }
             Text("업데이트 후에도 이 값이 같아야 같은 서명키로 설치된 것입니다.", color = AvColors.TextDim, fontSize = 12.sp)
 
+            Section("업데이트 (구글 드라이브)")
+            Text(
+                "① 아래 '데이터 내보내기'로 백업 → ② '새 버전 받기'에서 가장 큰 번호(r) APK 설치 → ③ '업데이트' 누르기. 앱을 삭제하지 마세요(데이터가 지워짐).",
+                color = AvColors.Text, fontSize = 13.sp,
+            )
+            Button(onClick = { openUrl(context, BuildConfig.DRIVE_INSTALL_FOLDER_URL) { message = it } }, modifier = Modifier.fillMaxWidth()) {
+                Text("새 버전 받기 (구글 드라이브 열기)")
+            }
+            OutlinedButton(onClick = { openUrl(context, BuildConfig.DRIVE_BACKUP_FOLDER_URL) { message = it } }, modifier = Modifier.fillMaxWidth()) {
+                Text("백업 폴더 열기 (구글 드라이브)")
+            }
+
             Section("데이터")
             Line("저장 파일", "${fileCount}개 (현장·측정·보정·진단)")
             Line("남은 저장공간", "$freeMb MB")
@@ -132,6 +153,7 @@ fun AppInfoScreen(nav: Navigator) {
                 val stamp = SimpleDateFormat("yyyyMMdd-HHmm", Locale.KOREA).format(Date())
                 exportLauncher.launch("acoustic-vision-backup-$stamp.zip")
             }, modifier = Modifier.fillMaxWidth()) { Text("전체 데이터 내보내기 (ZIP)") }
+            Text("저장 위치를 고르는 화면에서 ‘Drive’ → ‘02_데이터백업’ 폴더를 선택하면 구글 드라이브에 바로 저장됩니다.", color = AvColors.TextDim, fontSize = 12.sp)
             OutlinedButton(enabled = !busy, onClick = { importLauncher.launch(arrayOf("application/zip", "application/octet-stream")) }, modifier = Modifier.fillMaxWidth()) {
                 Text("백업에서 복원 (기존 데이터 유지)")
             }

@@ -188,6 +188,7 @@ class AppFlowTest {
             compose.onNodeWithText("정보·백업").performClick()
             compose.onNodeWithText(BuildConfig.VERSION_NAME).assertIsDisplayed()
             compose.onNodeWithText("debug (설치 시험용 — 현장 사용 금지)").assertIsDisplayed()
+            compose.onNodeWithText("새 버전 받기 (구글 드라이브 열기)").performScrollTo().assertIsDisplayed()
             compose.onNodeWithText("전체 데이터 내보내기 (ZIP)").performScrollTo().assertIsDisplayed()
             compose.onNodeWithText("백업에서 복원 (기존 데이터 유지)").performScrollTo().assertIsDisplayed()
         }
