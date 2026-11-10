@@ -72,6 +72,16 @@ fun MeterCaptureCamera(holder: CaptureHolder, modifier: Modifier = Modifier, onE
     AndroidView(factory = { view }, modifier = modifier)
 }
 
+/** OCR 실패 원인을 사용자 안내 문구로 변환 (Play 서비스 OCR 모델 미설치 등) */
+fun ocrErrorMessage(e: Throwable?): String {
+    val m = e?.message ?: ""
+    return if (m.contains("download", ignoreCase = true) || m.contains("UNAVAILABLE", ignoreCase = true) || m.contains("module", ignoreCase = true)) {
+        "OCR 모델 준비 중 — 첫 사용 시 인터넷 연결 후 잠시 기다리세요(구글 Play 서비스가 내려받음). 지금은 직접 입력하세요"
+    } else {
+        "OCR 실패 — 직접 입력하세요 ($m)"
+    }
+}
+
 /** ML Kit 문자 인식 → 줄 단위 토큰(글자 높이·신뢰도 포함). 실패 시 빈 목록. */
 object MeterOcr {
     suspend fun recognize(context: Context, file: File): Result<List<OcrToken>> = suspendCancellableCoroutine { cont ->

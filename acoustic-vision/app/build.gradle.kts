@@ -59,7 +59,10 @@ android {
     buildTypes {
         release {
             // 현장용: 고정 서명키(release). 키가 없으면 서명되지 않은 APK가 생성되며 설치용으로 배포하지 않는다.
-            isMinifyEnabled = false
+            // R8 코드 축소: APK 용량 감소(구글 드라이브 업로드 한도·휴대폰 저장공간). 규칙: proguard-rules.pro
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             if (releaseSigningAvailable) signingConfig = signingConfigs.getByName("release")
         }
         debug {
@@ -99,7 +102,7 @@ dependencies {
     implementation(libs.androidx.camera.camera2)
     implementation(libs.androidx.camera.lifecycle)
     implementation(libs.androidx.camera.view)
-    // 스마트 비교보정 V2: 소음계 결과 화면 OCR (번들 모델, 오프라인 동작)
+    // 스마트 비교보정 V2: 소음계 결과 화면 OCR (구글 Play 서비스 제공 모델 — 첫 사용 시 내려받음, APK 용량 절감)
     implementation(libs.mlkit.text.recognition)
 
     // 시험 전용 (APK 미포함): JVM에서 화면 흐름 스모크 시험

@@ -126,7 +126,7 @@ class SeriesCaptureController(private val evidenceDir: File, private val filePre
             )
             synchronized(samples) { samples.add(sample) }
         } catch (e: Exception) {
-            _live.value = "OCR 오류: ${e.message}"
+            _live.value = ocrErrorMessage(e)
         } finally {
             image.close()
         }

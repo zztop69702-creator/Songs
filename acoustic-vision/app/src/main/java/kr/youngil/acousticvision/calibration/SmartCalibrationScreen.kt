@@ -403,7 +403,7 @@ private fun Wizard(repo: Repository, engine: AudioEngine, nav: Navigator, camera
                             photo = f; photoTime = System.currentTimeMillis(); photos += f.name
                             val tokens = MeterOcr.recognize(context, f)
                             ocr = tokens.getOrNull()?.let { MeterOcrParser.parse(it, thresholds.referenceMinDb, thresholds.referenceMaxDb) }
-                            if (tokens.isFailure) message = "OCR 실패 — 직접 입력하세요 (${tokens.exceptionOrNull()?.message})"
+                            if (tokens.isFailure) message = ocrErrorMessage(tokens.exceptionOrNull())
                             ocr?.best?.let { valueText = Fmt.num(it.valueDb, 1) }
                             ocr?.let { r ->
                                 if (r.weightingA == true) weighting = "A"

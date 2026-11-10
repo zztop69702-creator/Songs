@@ -21,6 +21,10 @@
         <property
             android:name="android.window.PROPERTY_COMPAT_ALLOW_RESTRICTED_RESIZABILITY"
             android:value="true" />
+        <!-- OCR 모델(구글 Play 서비스 제공): 가능하면 설치 시점에 미리 내려받도록 요청 -->
+        <meta-data
+            android:name="com.google.mlkit.vision.DEPENDENCIES"
+            android:value="ocr" />
         <activity
             android:name=".MainActivity"
             android:exported="true"
