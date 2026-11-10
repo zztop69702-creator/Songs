@@ -22,7 +22,7 @@
 | 4 | 기본 브랜치 | `claude/focused-lovelace-rsg2c1` → 수동 실행 버튼은 워크플로가 이 브랜치에 있어야 표시 | git 원격 조회 | [확인] |
 | 5 | GitHub Actions 워크플로 | `.github/workflows/android-apk.yml` 작성: 수동 실행 + `claude/**` 푸시 자동 실행, 시험→debug APK→(키 있으면) release APK→이름·SHA-256·서명지문 요약→아티팩트 30일 | 파일 | [확인: 작성] |
 | 6 | 워크플로 핵심 단계 모의 실행 | 일회용 키로 release 서명 빌드 성공(versionCode 1007), 이름 지정·SHA-256·apksigner 서명지문 단계 실행 성공, `sha256sum -c` OK. 모의 실행에서 파일명 중복 결함 발견·수정 | 이 환경 실행 | [확인] |
-| 7 | 실제 GitHub Actions 실행 | 푸시 후 실행 결과로 확인 (TEST_LOG 참조) | — | 아래 TEST_LOG |
+| 7 | 실제 GitHub Actions 실행 | #1 실패(시험 타이밍 결함) → 수정 → **#2 성공**: 시험 57건 통과, debug APK·SHA-256·아티팩트 생성 (https://github.com/zztop69702-creator/Songs/actions/runs/42841795842) | TEST_LOG T-0020, T-0021 | [확인] |
 | 8 | Actions 버전 | checkout@v7, setup-java@v5, setup-gradle@v5, upload-artifact@v6 (각 태그 존재 확인, 최신 대신 안정 쪽 선택) | git 태그 조회 | [확인] |
 | 9 | 서명키 보관 | 키는 저장소에 넣지 않음. Base64 + 비밀번호 3종을 **Actions secrets**로만 전달, 로그 미출력 | 워크플로·build.gradle.kts | [확인: 설계] |
 | 10 | 업데이트 체계 | applicationId 고정(`kr.youngil.acousticvision`), versionCode = 1000 + 빌드번호(항상 증가), 같은 release 키 | build.gradle.kts | [확인: 설계] |

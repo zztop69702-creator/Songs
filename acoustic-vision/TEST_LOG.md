@@ -24,5 +24,7 @@
 | T-0017 | 2026-11-10 | BUILD | 컨테이너 | 병합 매니페스트 권한 검사 | ML Kit이 INTERNET·ACCESS_NETWORK_STATE 자동 병합 발견 → INTERNET 제거 확인 | D-028 |
 | T-0018 | 2026-11-10 | UNIT | 컨테이너 JVM | BackupTest | **5 / 5 통과**: 내보내기→복원, 덮어쓰기 금지, zip-slip 차단, 변조 탐지(SHA-256), manifest 없음 거부 | — |
 | T-0019 | 2026-11-10 | JVM-UI | Robolectric | 앱 정보 화면, Fold5 펼친 화면 크기 가정(w841dp·h673dp, 추정) 흐름 | 1차 실패 2건: 시험이 비동기 파일 IO를 기다리지 않음(앱 결함 아님) → 대기 추가 후 **14 / 14 통과, 3회 연속** | 시험 안정화 |
+| T-0020 | 2026-11-10 | CI | GitHub Actions #1 (ubuntu-latest, JDK 17.0.21) | 푸시 자동 실행 | **실패**: 큰 화면 시험 1건 — 느린 CI에서 비동기 화면 로딩 전 클릭(시험 타이밍 결함) | 대기 추가로 수정 |
+| T-0021 | 2026-11-10 | CI | GitHub Actions #2 | 시험 → debug APK → SHA-256 → 아티팩트 | **성공** (약 4분): core 43 + app 14 통과, `YOUNGIL-AcousticVision-0.4.0-b2-debug.apk`(36.6 MB), 아티팩트 ZIP SHA-256 `00bbb27f…0a7e36`, release는 secrets 없어 생략(설계대로) | 클라우드 빌드 경로 확인. 실기기 설치는 미검증 |
 
 실기기 시험: **0건** (TEST_PLAN P0-01 ~ P0-10, P1-04·06·07·08, V2-D01 ~ D05 미실시)
