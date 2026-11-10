@@ -46,6 +46,10 @@ class AppFlowTest {
 
     private val app: Application = ApplicationProvider.getApplicationContext()
 
+    /** 파일 IO가 비동기라 화면 표시를 기다린다 (Compose 시험 도구는 Dispatchers.IO를 대기하지 않음) */
+    private fun waitText(text: String, substring: Boolean = false) =
+        compose.waitUntil(5_000) { compose.onAllNodes(hasText(text, substring = substring)).fetchSemanticsNodes().isNotEmpty() }
+
     private fun grantAll() = shadowOf(app).grantPermissions(Manifest.permission.RECORD_AUDIO, Manifest.permission.CAMERA)
 
     @Test fun homeShowsDisclaimerAndEmptyState() {
@@ -53,6 +57,7 @@ class AppFlowTest {
         ActivityScenario.launch(MainActivity::class.java).use {
             compose.onNodeWithText("YOUNGIL Acoustic Vision").assertIsDisplayed()
             compose.onNodeWithText("공인 소음계 측정을 대체하지 않음", substring = true).assertIsDisplayed()
+            waitText("등록된 현장이 없습니다", substring = true)
             compose.onNodeWithText("등록된 현장이 없습니다", substring = true).assertIsDisplayed()
         }
     }
@@ -101,9 +106,12 @@ class AppFlowTest {
         runBlocking { repo.saveProject(p); repo.saveMeasurement(m, null) }
 
         ActivityScenario.launch(MainActivity::class.java).use {
+            waitText("시험중학교")
             compose.onNodeWithText("시험중학교").performClick()
+            waitText("LAeq -40.0 dBFS(A)")
             compose.onNodeWithText("LAeq -40.0 dBFS(A)").assertIsDisplayed()
             compose.onNodeWithText("흡입구 1 m").performClick()
+            waitText("미보정 · 상대값(dBFS)")
             compose.onNodeWithText("미보정 · 상대값(dBFS)").assertIsDisplayed()
             compose.onNodeWithText("M1 · MANUAL").performScrollTo().assertIsDisplayed()
             compose.onNodeWithText("x 0.30, y 0.60").performScrollTo().assertIsDisplayed()
@@ -141,8 +149,11 @@ class AppFlowTest {
         val repo = Repository(app)
         runBlocking { repo.saveProject(Project(id = "p2", siteName = "시험고등학교", equipmentName = "급기팬", createdAtEpochMs = 1L)) }
         ActivityScenario.launch(MainActivity::class.java).use {
+            waitText("시험고등학교")
             compose.onNodeWithText("시험고등학교").performClick()
+            waitText("측정 시작")
             compose.onNodeWithText("측정 시작").performClick()
+            compose.waitUntil(5_000) { compose.onAllNodes(hasText("LAeq")).fetchSemanticsNodes().isNotEmpty() }
             compose.onNodeWithText("LAeq").assertIsDisplayed()
             compose.onNodeWithText("화면을 눌러 수동 마커(빨간 점선) 추가").assertIsDisplayed()
         }
@@ -153,6 +164,7 @@ class AppFlowTest {
         grantAll()
         ActivityScenario.launch(MainActivity::class.java).use {
             compose.onNodeWithText("보정").performClick()
+            waitText("저장된 프로파일 없음")
             compose.onNodeWithText("저장된 프로파일 없음").assertIsDisplayed()
             compose.onNodeWithText("스마트 비교보정 (기준 소음계 LAeq)").performClick()
             compose.onNodeWithText("다음: 측정").performScrollTo().assertIsNotEnabled()
@@ -166,6 +178,38 @@ class AppFlowTest {
             compose.onNodeWithText("① 보정 측정").assertIsDisplayed()
             compose.onNodeWithText("측정 시작").performScrollTo().assertIsDisplayed()
             compose.onNodeWithText("노란 상자", substring = true).assertExists()
+        }
+    }
+
+    // V3: 앱 정보·백업 화면 (버전·서명·내보내기 버튼)
+    @Test fun appInfoShowsVersionAndBackupActions() {
+        grantAll()
+        ActivityScenario.launch(MainActivity::class.java).use {
+            compose.onNodeWithText("정보·백업").performClick()
+            compose.onNodeWithText(BuildConfig.VERSION_NAME).assertIsDisplayed()
+            compose.onNodeWithText("debug (설치 시험용 — 현장 사용 금지)").assertIsDisplayed()
+            compose.onNodeWithText("전체 데이터 내보내기 (ZIP)").performScrollTo().assertIsDisplayed()
+            compose.onNodeWithText("백업에서 복원 (기존 데이터 유지)").performScrollTo().assertIsDisplayed()
+        }
+    }
+
+    // V3: Galaxy Z Fold5 펼친 화면 크기(추정 약 841×673 dp) 가정 — 주요 화면 진입 시 비정상 종료 없음
+    @Test
+    @Config(sdk = [35], qualifiers = "w841dp-h673dp-land-xhdpi")
+    fun largeUnfoldedScreenMainFlowsDoNotCrash() {
+        grantAll()
+        runBlocking { Repository(app).saveProject(Project(id = "pf", siteName = "폴드시험학교", equipmentName = "배기팬", createdAtEpochMs = 1L)) }
+        ActivityScenario.launch(MainActivity::class.java).use {
+            waitText("폴드시험학교")
+            compose.onNodeWithText("폴드시험학교").performClick()
+            waitText("측정 시작")
+            compose.onNodeWithText("측정 시작").performClick()
+            compose.waitUntil(5_000) { compose.onAllNodes(hasText("LAeq")).fetchSemanticsNodes().isNotEmpty() }
+            compose.onNodeWithText("LAeq").assertExists()
+            compose.onNodeWithText("‹ 뒤로").performClick()
+            compose.onNodeWithText("‹ 뒤로").performClick()
+            compose.onNodeWithText("보정").performClick()
+            compose.onNodeWithText("스마트 비교보정 (기준 소음계 LAeq)").assertExists()
         }
     }
 }

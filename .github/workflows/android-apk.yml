@@ -1,0 +1,123 @@
+# YOUNGIL Acoustic Vision — Android APK 클라우드 빌드 (V3)
+# - 수동 실행(workflow_dispatch): 워크플로 파일이 기본 브랜치에 있어야 "Run workflow" 버튼이 표시됨
+# - 개발 브랜치(claude/**) 푸시 시 acoustic-vision 변경이 있으면 자동 빌드
+# - release 서명: 저장소 secrets 4개가 모두 있을 때만 생성. 키·비밀번호는 로그/아티팩트에 출력하지 않음
+#   ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD
+name: Android APK (Acoustic Vision)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ['claude/**']
+    paths:
+      - 'acoustic-vision/**'
+      - '.github/workflows/android-apk.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-apk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: acoustic-vision
+    env:
+      CI_BUILD_NUMBER: ${{ github.run_number }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Gradle
+        uses: gradle/actions/setup-gradle@v5
+
+      - name: 단위·화면 시험 (core + Robolectric)
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon :core:test :app:testDebugUnitTest
+
+      - name: Debug APK (설치 시험용)
+        run: ./gradlew --no-daemon :app:assembleDebug
+
+      - name: Release 서명키 준비 (secrets가 있을 때만)
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ] && [ -n "$KS_PASS" ] && [ -n "$KEY_ALIAS" ] && [ -n "$KEY_PASS" ]; then
+            printf '%s' "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.jks"
+            echo "ANDROID_KEYSTORE_FILE=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+            echo "HAS_RELEASE_KEY=true" >> "$GITHUB_ENV"
+          else
+            echo "release 서명 secrets 없음 → release APK 생략 (debug만 생성)"
+            echo "HAS_RELEASE_KEY=false" >> "$GITHUB_ENV"
+          fi
+
+      - name: Release APK (현장용, 고정 서명)
+        if: env.HAS_RELEASE_KEY == 'true'
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: ./gradlew --no-daemon :app:assembleRelease
+
+      - name: 이름 지정·SHA-256·빌드 기록
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          APKSIGNER=$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)apksigner
+          summary="$GITHUB_STEP_SUMMARY"
+          echo "## YOUNGIL Acoustic Vision 빌드 #${CI_BUILD_NUMBER}" >> "$summary"
+          echo "" >> "$summary"
+          echo "| 파일 | versionCode | SHA-256 (APK 파일) | 서명 인증서 SHA-256 |" >> "$summary"
+          echo "|---|---|---|---|" >> "$summary"
+          for type in debug release; do
+            meta="app/build/outputs/apk/$type/output-metadata.json"
+            [ -f "$meta" ] || continue
+            apk="app/build/outputs/apk/$type/$(jq -r '.elements[0].outputFile' "$meta")"
+            vname=$(jq -r '.elements[0].versionName' "$meta")
+            vcode=$(jq -r '.elements[0].versionCode' "$meta")
+            case "$apk" in *unsigned*) echo "서명되지 않은 $type APK 제외"; continue;; esac
+            # versionName에 빌드번호(-bN)와 debug 접미사가 이미 포함됨
+            if [ "$type" = release ]; then out="dist/YOUNGIL-AcousticVision-${vname}-release.apk"; else out="dist/YOUNGIL-AcousticVision-${vname}.apk"; fi
+            cp "$apk" "$out"
+            certinfo=$("$APKSIGNER" verify --print-certs "$out")
+            cert=$(printf '%s\n' "$certinfo" | awk '/certificate SHA-256 digest/ {print $NF}' | head -n1)
+            sha=$(sha256sum "$out" | awk '{print $1}')
+            echo "$sha  $(basename "$out")" >> dist/SHA256SUMS.txt
+            echo "| $(basename "$out") | $vcode | \`$sha\` | \`$cert\` |" >> "$summary"
+          done
+          {
+            echo "app: YOUNGIL Acoustic Vision"
+            echo "commit: $GITHUB_SHA"
+            echo "ref: $GITHUB_REF_NAME"
+            echo "run: $GITHUB_RUN_NUMBER (attempt $GITHUB_RUN_ATTEMPT)"
+            echo "built_at_utc: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo "release_signed: $HAS_RELEASE_KEY"
+            echo "tests: core + app unit/Robolectric passed in this run (JVM; not a device test)"
+            echo "note: debug APK = 설치 시험용(별도 앱 ID .debug, 빌드마다 서명이 달라 업데이트 불가). 현장용은 release APK."
+          } > dist/BUILD_INFO.txt
+          echo "" >> "$summary"
+          echo "release 서명: **$HAS_RELEASE_KEY** · 시험(JVM) 통과 · 실기기 설치 검증은 별도" >> "$summary"
+          ls -la dist
+
+      - name: 아티팩트 업로드
+        uses: actions/upload-artifact@v6
+        with:
+          name: YOUNGIL-AcousticVision-b${{ github.run_number }}
+          path: acoustic-vision/dist/
+          retention-days: 30
+          if-no-files-found: error

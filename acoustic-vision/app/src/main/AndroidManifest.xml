@@ -1,9 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- 오프라인 전용: 라이브러리(ML Kit 등)가 병합하는 인터넷 권한 제거. 현장 영상·측정자료가 앱을 통해 외부로 전송되지 않도록 함 -->
+    <uses-permission android:name="android.permission.INTERNET" tools:node="remove" />
 
     <uses-feature android:name="android.hardware.camera.any" android:required="false" />
     <uses-feature android:name="android.hardware.microphone" android:required="true" />
@@ -14,6 +17,10 @@
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/Theme.AcousticVision">
+        <!-- Android 16(targetSdk 36): 큰 화면(Fold5 펼친 화면 등)에서 세로 고정 유지 (API 36 한정 opt-out, API 37부터 불가) -->
+        <property
+            android:name="android.window.PROPERTY_COMPAT_ALLOW_RESTRICTED_RESIZABILITY"
+            android:value="true" />
         <activity
             android:name=".MainActivity"
             android:exported="true"

@@ -19,5 +19,10 @@
 | T-0012 | 2026-11-10 | UNIT/SIM | 컨테이너 JVM | `gradle :core:test` (연속판독 추가) | **43 / 43 통과** (연속판독 6건 추가) | 합성 데이터 기준 |
 | T-0013 | 2026-11-10 | JVM-UI | Robolectric | `gradle :app:testDebugUnitTest` | 1차 1건 실패: 보정 단계 전환 후 제목이 화면 밖 (스크롤 위치 유지 결함) → 수정 후 **7 / 7 통과** | 결함 수정 (D-022) |
 | T-0014 | 2026-11-10 | BUILD | 〃 | `assembleDebug`, `lintDebug` | APK 36.7 MB, Lint 오류 0 / 경고 5 (ChromeOsAbiSupport 추가: ARM 전용 설정에 따른 것) | — |
+| T-0015 | 2026-11-10 | BUILD | 컨테이너 | 일회용 시험 키로 release 서명 빌드 (CI_BUILD_NUMBER=7) | 성공: versionCode 1007, 서명된 app-release.apk(32.2 MB). 키는 시험 후 삭제 | 서명 설정 동작 확인 |
+| T-0016 | 2026-11-10 | BUILD | 컨테이너 | 워크플로 "이름 지정·SHA-256" 단계 추출 실행 | 1차: 파일명 빌드번호 중복 결함 발견 → 수정 후 `…-0.4.0-b7-release.apk` 등 생성, `sha256sum -c` OK, apksigner 서명지문 출력 | 결함 수정 |
+| T-0017 | 2026-11-10 | BUILD | 컨테이너 | 병합 매니페스트 권한 검사 | ML Kit이 INTERNET·ACCESS_NETWORK_STATE 자동 병합 발견 → INTERNET 제거 확인 | D-028 |
+| T-0018 | 2026-11-10 | UNIT | 컨테이너 JVM | BackupTest | **5 / 5 통과**: 내보내기→복원, 덮어쓰기 금지, zip-slip 차단, 변조 탐지(SHA-256), manifest 없음 거부 | — |
+| T-0019 | 2026-11-10 | JVM-UI | Robolectric | 앱 정보 화면, Fold5 펼친 화면 크기 가정(w841dp·h673dp, 추정) 흐름 | 1차 실패 2건: 시험이 비동기 파일 IO를 기다리지 않음(앱 결함 아님) → 대기 추가 후 **14 / 14 통과, 3회 연속** | 시험 안정화 |
 
 실기기 시험: **0건** (TEST_PLAN P0-01 ~ P0-10, P1-04·06·07·08, V2-D01 ~ D05 미실시)

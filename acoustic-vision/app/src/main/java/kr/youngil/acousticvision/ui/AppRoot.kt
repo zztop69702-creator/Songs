@@ -70,6 +70,7 @@ sealed interface Route {
     data object SmartCalibration : Route
     data object CalibratorCalibration : Route
     data object Diagnostics : Route
+    data object AppInfo : Route
 }
 
 class Navigator {
@@ -98,6 +99,7 @@ fun AppRoot() {
             Route.SmartCalibration -> SmartCalibrationScreen(repo, engine, nav)
             Route.CalibratorCalibration -> CalibratorScreen(repo, engine, nav)
             Route.Diagnostics -> DiagnosticsScreen(repo, nav)
+            Route.AppInfo -> AppInfoScreen(nav)
         }
     }
 }
@@ -169,7 +171,9 @@ fun HomeScreen(repo: Repository, nav: Navigator) {
     var projects by remember { mutableStateOf<List<Project>?>(null) }
     LaunchedEffect(Unit) { projects = repo.listProjects() }
     Column(Modifier.fillMaxSize()) {
-        TopBar("YOUNGIL Acoustic Vision", onBack = null)
+        TopBar("YOUNGIL Acoustic Vision", onBack = null) {
+            TextButton(onClick = { nav.push(Route.AppInfo) }) { Text("정보·백업") }
+        }
         Text(
             DISCLAIMER_SHORT, color = AvColors.Warn, fontSize = 12.sp,
             modifier = Modifier.padding(horizontal = 16.dp),

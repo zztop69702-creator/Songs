@@ -224,6 +224,7 @@ private fun MeasureContent(repo: Repository, engine: AudioEngine, nav: Navigator
                 val snap = engine.snapshot()
                 if (snap == null) { saveError = "분석 데이터가 없습니다"; return@SaveDialog }
                 if (snap.levels.durationSec < 3.0) { saveError = "최소 3초 이상 측정 후 저장하세요"; return@SaveDialog }
+                if (repo.freeBytes() < 50L * 1024 * 1024) { saveError = "저장공간 부족(50 MB 미만) — 공간 확보 후 다시 저장하세요"; return@SaveDialog }
                 val spec = snap.averagedSpectrum
                 val peaks = spec?.let { PeakDetector.find(it, maxPeaks = 10) } ?: emptyList()
                 val bands = spec?.let { ThirdOctave.bands(it) } ?: emptyList()

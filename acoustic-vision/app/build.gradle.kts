@@ -1,5 +1,16 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
+// ---- 버전·서명 (V3: 업데이트 시 데이터 보존) ----
+// CI(GitHub Actions)는 CI_BUILD_NUMBER(=run_number)를 넘긴다. versionCode는 항상 증가해야 기존 앱 위에 업데이트된다.
+val ciBuildNumber: Int? = System.getenv("CI_BUILD_NUMBER")?.toIntOrNull()
+val baseVersionName = "0.4.0"
+val appVersionCode = if (ciBuildNumber != null) 1000 + ciBuildNumber else 4
+val appVersionName = if (ciBuildNumber != null) "$baseVersionName-b$ciBuildNumber" else "$baseVersionName-local"
+// release 서명키: 저장소에 넣지 않는다. CI secret → 환경변수로만 전달 (값은 로그에 출력하지 않음)
+val releaseKeystore: String? = System.getenv("ANDROID_KEYSTORE_FILE")
+val releaseSigningAvailable = !releaseKeystore.isNullOrBlank() && file(releaseKeystore).exists() &&
+    listOf("ANDROID_KEYSTORE_PASSWORD", "ANDROID_KEY_ALIAS", "ANDROID_KEY_PASSWORD").all { !System.getenv(it).isNullOrBlank() }
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -14,17 +25,38 @@ android {
         applicationId = "kr.youngil.acousticvision"
         minSdk = 26
         targetSdk = 36
-        versionCode = 3
-        versionName = "0.3.0-phase1-v2cal-series"
+        versionCode = appVersionCode
+        versionName = appVersionName
+        resValue("string", "app_name", "영일 음향비전")
+        buildConfigField("int", "CI_BUILD_NUMBER", (ciBuildNumber ?: 0).toString())
         // 실제 휴대폰(ARM)만 포함: ML Kit 네이티브 라이브러리 용량 절감 (x86 에뮬레이터 제외)
         ndk {
             abiFilters += listOf("arm64-v8a", "armeabi-v7a")
         }
     }
 
+    signingConfigs {
+        if (releaseSigningAvailable) {
+            create("release") {
+                storeFile = file(releaseKeystore!!)
+                storePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("ANDROID_KEY_ALIAS")
+                keyPassword = System.getenv("ANDROID_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
+            // 현장용: 고정 서명키(release). 키가 없으면 서명되지 않은 APK가 생성되며 설치용으로 배포하지 않는다.
             isMinifyEnabled = false
+            if (releaseSigningAvailable) signingConfig = signingConfigs.getByName("release")
+        }
+        debug {
+            // 설치 시험용: 빌드 환경마다 디버그 서명이 달라 업데이트가 안 될 수 있으므로 별도 앱으로 설치
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
+            resValue("string", "app_name", "영일 음향비전 (시험)")
         }
     }
     compileOptions {
@@ -33,6 +65,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     testOptions {
         unitTests.isIncludeAndroidResources = true

@@ -1,5 +1,20 @@
 # CHANGELOG.md
 
+## [0.4.0 — V3 클라우드 빌드·설치·데이터 보존 기반] 2026-11-10
+### 추가
+- GitHub Actions 워크플로(`.github/workflows/android-apk.yml`): 시험 → debug APK → (secrets 있으면) release APK → 버전·빌드번호 파일명, SHA-256, 서명지문 요약 → 아티팩트
+- release 서명 설정(환경변수·secrets 전용), versionCode = 1000 + 빌드번호
+- 데이터 백업·복원(ZIP, SHA-256 검증, 경로 검증, 덮어쓰기 금지)
+- 앱 정보·백업 화면(버전, 빌드번호, 서명 인증서 SHA-256, 남은 공간)
+- 측정 저장 시 저장공간 부족(50 MB 미만) 차단
+- 시험: 백업 5건, 화면 2건(앱 정보, 큰 화면)
+- 문서: docs/V3_PHASE0_REPORT.md, V3 지시서 사본
+### 변경
+- debug 빌드: 별도 앱 ID `.debug`, 이름 "영일 음향비전 (시험)"
+- INTERNET 권한 제거(ML Kit 자동 병합분)
+- Android 16 큰 화면 세로고정 opt-out 속성
+- 화면 시험: 비동기 IO 대기 추가(안정화)
+
 ## [0.3.0 — 비적분형 소음계 연속판독 보정] 2026-11-10
 ### 추가
 - core/calibration/SeriesComparison: 시간가중(S/F) 레벨 계산, 판독 시계열 1:1 비교, 표시 지연 추정, 오프셋(중앙값)·잔차·판정, 검증 오차

@@ -129,6 +129,9 @@ class Repository(context: Context) {
         f
     }
 
+    /** 앱 저장소 남은 공간 (바이트) */
+    fun freeBytes(): Long = runCatching { root.usableSpace }.getOrDefault(Long.MAX_VALUE)
+
     private fun writeAtomic(target: File, text: String) {
         target.parentFile?.mkdirs()
         val tmp = File(target.parentFile, target.name + ".tmp")
