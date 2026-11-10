@@ -8,9 +8,12 @@
 | 0 | 기술검증 문서 | — | — | **완료(문서), 승인 대기** |
 | 1 | 스마트폰 MVP | 2~4주 | Phase 0 승인, 시험 기기 확보 | 대기 |
 | 2 | 영상·거리 | 2~4주 | P1 인수시험 통과 | 대기 |
-| 3 | 자동 음원탐지 | 6~12주+ | **Go/No-Go**: T-10(시뮬레이션) 통과 + 임대 대비 비용 검토 + 대상 주파수 범위 확정 | 대기 |
+| 3A | **AR 스캔 히트맵** (자동 위치 표시 기본, D-012) | 4~6주 (추정) | P2 통과 (ARCore 거리 모드·오디오 동기 재사용) | 대기 |
+| 3B | 대형 배열 빔포밍 (선택 확장) | 6~12주+ (SPEC) | **Go/No-Go**: 3A 결과 부족 판단 + T-10(시뮬레이션) 통과 + 임대 대비 비용 검토 | 보류 |
 | 4 | 보고서 | 2~4주 | P2 통과 (P3와 병행 가능) | 대기 |
 | 5 | 현장검증 | 4~8주 | P4 통과 | 대기 |
+
+**Phase 3A 범위 (D-012):** ARCore 세션 + 외장 마이크 동시 취득 → 스캔 샘플(위치·자세·대역 레벨·추적 상태) 기록 → 대상 표면(평면 적합 또는 Depth) 투영 → 보간 반경 제한 히트맵 → 대역 선택(BPF/f_rot/120 Hz/사용자 대역) → 영상 오버레이·저장. 내장 마이크 기준 채널로 운전 변동 정규화.
 
 **권장 순서 조정(제안):** Phase 4(보고서)를 Phase 3보다 먼저 수행. 영업 가치가 큰 "FFT+영상+전후비교 보고서"를 먼저 확보하고, 불확실성이 큰 AUTO는 별도 게이트로 분리한다. → DECISIONS D-008 (제안).
 
@@ -46,7 +49,8 @@ app/
  ├─ audio/         AudioCaptureModule (AudioRecord, 타임스탬프, 소스/효과 기록)
  ├─ level/         SoundLevelModule (A/C/Z 가중, Leq, Fast/Slow, 교정 오프셋)
  ├─ fft/           FFTAnalyzerModule (FFT, 스펙트로그램, 피크, 1/3옥타브-참고)
- ├─ localization/  SourceLocalizationModule (Phase 3, 배열 미연결 시 비활성)
+ ├─ scanmap/       AR 스캔 히트맵 (Phase 3A, D-012)
+ ├─ localization/  SourceLocalizationModule (Phase 3B, 배열 미연결 시 비활성)
  ├─ distance/      DistanceModule (Phase 2: ARCore 별도 모드 / 외장 / 수동)
  ├─ overlay/       OverlayRendererModule
  ├─ recorder/      RecorderModule (Phase 2)
@@ -79,6 +83,14 @@ DistanceRecord { id, measurementId, **source: DistanceSource**, valueM?(실패 �
                **confidence**, failed: Boolean, failReason? }
 FileRef      { type(MP4/WAV/CSV/JSON), path, sha256, createdAt, isOriginal }
 AnnotationEdit { id, targetId, before, after, editedAt, editor }   // 원본 파일과 분리 저장
+
+// Phase 3A — AR 스캔 히트맵 (D-012, D-013)
+ScanSession  { id, measurementId, startedAt, endedAt, bandDefs[], referenceChannel(내장마이크 사용 여부),
+               surfaceModel(PLANE/DEPTH), **calibration: CalibrationRecord** }
+ScanSample   { scanId, timestampNs, poseX/Y/Z, poseQuat, **trackingState**, micToSurfaceM?,
+               bandLevels[], refLevel?, **provenance = MEASURED**, discarded: Boolean, discardReason? }
+HeatmapCell  { scanId, band, u, v(표면 좌표), value?(미측정이면 null), **provenance(MEASURED/ESTIMATED)**,
+               sampleCount, interpRadiusM }
 ```
 
 ## 5. UI 원칙
