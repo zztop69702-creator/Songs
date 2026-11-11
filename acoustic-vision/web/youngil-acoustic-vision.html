@@ -1,0 +1,822 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#101E31">
+<title>영일 음향비전 (웹)</title>
+<style>
+  :root {
+    --navy: #101E31; --navy2: #1B2D47; --navy3: #24395A; --blue: #3478F6;
+    --red: #E53935; --yellow: #FFC107; --text: #EAF0F8; --dim: #9FB0C8; --warn: #FFB74D; --ok: #66BB6A;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--navy); color: var(--text);
+    font-family: -apple-system, "Noto Sans KR", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif; }
+  body { padding-bottom: calc(env(safe-area-inset-bottom) + 70px); }
+  header { position: sticky; top: 0; z-index: 5; background: var(--navy); padding: 10px 16px 6px; border-bottom: 1px solid var(--navy3); }
+  header h1 { font-size: 18px; margin: 0; }
+  header .sub { font-size: 12px; color: var(--warn); margin-top: 2px; }
+  nav { position: fixed; bottom: 0; left: 0; right: 0; z-index: 6; display: flex; background: var(--navy2);
+    border-top: 1px solid var(--navy3); padding-bottom: env(safe-area-inset-bottom); }
+  nav button { flex: 1; background: none; border: 0; color: var(--dim); font-size: 14px; padding: 12px 4px; }
+  nav button.on { color: var(--text); font-weight: 700; box-shadow: inset 0 3px 0 var(--blue); }
+  main { max-width: 760px; margin: 0 auto; padding: 12px 16px; }
+  section { display: none; } section.on { display: block; }
+  .card { background: var(--navy2); border-radius: 12px; padding: 12px; margin-bottom: 12px; }
+  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .row > * { min-width: 0; }
+  button.b { background: var(--blue); color: #fff; border: 0; border-radius: 10px; padding: 12px 14px; font-size: 15px; font-weight: 600; }
+  button.o { background: transparent; color: var(--text); border: 1px solid var(--dim); border-radius: 10px; padding: 11px 14px; font-size: 15px; }
+  button:disabled { opacity: .4; }
+  .grow { flex: 1; }
+  select, input, textarea { width: 100%; background: var(--navy); color: var(--text); border: 1px solid var(--navy3);
+    border-radius: 8px; padding: 10px; font-size: 15px; }
+  label { font-size: 13px; color: var(--dim); display: block; margin: 8px 0 4px; }
+  .tag { display: inline-block; font-size: 12px; font-weight: 700; color: #000; border-radius: 6px; padding: 3px 8px; }
+  .t-warn { background: var(--warn); } .t-ok { background: var(--ok); }
+  #stage { position: relative; width: 100%; aspect-ratio: 3 / 4; max-height: 56vh; background: #000; border-radius: 12px; overflow: hidden; }
+  #stage video { width: 100%; height: 100%; object-fit: cover; display: block; }
+  #stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: manipulation; }
+  #lvlBox { position: absolute; left: 8px; top: 8px; background: rgba(0,0,0,.6); border-radius: 8px; padding: 8px 10px; pointer-events: none; }
+  #lvlBig { font-size: 26px; font-weight: 800; }
+  #camMsg { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; color: var(--dim); padding: 20px; pointer-events: none; }
+  #hint { position: absolute; bottom: 6px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,.55); font-size: 12px; padding: 4px 8px; border-radius: 6px; pointer-events: none; white-space: nowrap; }
+  canvas#spec { width: 100%; height: 180px; background: var(--navy2); border-radius: 12px; display: block; margin-top: 10px; }
+  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 8px; }
+  .cell .k { font-size: 11px; color: var(--dim); } .cell .v { font-size: 14px; font-weight: 700; }
+  .small { font-size: 12px; color: var(--dim); }
+  .warnline { font-size: 13px; color: var(--red); margin-top: 4px; }
+  .list .it { background: var(--navy2); border-radius: 10px; padding: 12px; margin-bottom: 8px; }
+  .list .it .t { font-weight: 700; } .kv { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; padding: 3px 0; border-bottom: 1px dashed var(--navy3); }
+  .kv span:first-child { color: var(--dim); }
+  dialog { background: var(--navy2); color: var(--text); border: 1px solid var(--navy3); border-radius: 14px; width: min(92vw, 520px); }
+  dialog::backdrop { background: rgba(0,0,0,.6); }
+  h2 { font-size: 16px; margin: 4px 0 8px; color: var(--blue); }
+  .big { font-size: 22px; font-weight: 800; }
+  .flash { background: #fff !important; color: #000 !important; }
+  a { color: var(--blue); }
+  .err { color: var(--red); }
+</style>
+</head>
+<body>
+<header>
+  <h1>영일 음향비전 <span class="small">웹 버전 0.4.0-web1</span></h1>
+  <div class="sub">스마트폰 기반 참고값 · 공인 소음계 측정을 대체하지 않음</div>
+</header>
+
+<main>
+<!-- ================= 측정 ================= -->
+<section id="tab-measure" class="on">
+  <div class="card">
+    <div class="row">
+      <select id="projSel" class="grow" aria-label="현장 선택"></select>
+      <button class="o" id="btnNewProj">+ 새 현장</button>
+    </div>
+    <div class="small" id="projInfo" style="margin-top:6px"></div>
+  </div>
+
+  <div id="stage">
+    <video id="video" playsinline muted></video>
+    <canvas id="ov"></canvas>
+    <div id="camMsg">‘측정 시작’을 누르면 마이크·카메라 권한을 묻습니다</div>
+    <div id="lvlBox"><div id="lvlBig">—</div><div class="small">LAF (Fast)</div><div id="calTag" style="margin-top:4px"></div></div>
+    <div id="hint">화면을 눌러 수동 마커(빨간 점선) 추가</div>
+  </div>
+
+  <canvas id="spec"></canvas>
+  <div class="small" id="cfgLine" style="margin-top:6px"></div>
+  <div class="grid">
+    <div class="cell"><div class="k">LAeq</div><div class="v" id="vLeq">—</div></div>
+    <div class="cell"><div class="k">LAFmax</div><div class="v" id="vMax">—</div></div>
+    <div class="cell"><div class="k">LAFmin</div><div class="v" id="vMin">—</div></div>
+    <div class="cell"><div class="k">시간</div><div class="v" id="vDur">—</div></div>
+  </div>
+  <div class="small" id="toneLine" style="color:var(--blue);margin-top:6px"></div>
+  <div id="warns"></div>
+
+  <div class="row" style="margin-top:10px">
+    <button class="b grow" id="btnStart">측정 시작</button>
+    <button class="o" id="btnReset" disabled>초기화</button>
+    <button class="o" id="btnDelMk" disabled>마커 삭제</button>
+    <button class="b" id="btnSave" disabled>저장</button>
+  </div>
+</section>
+
+<!-- ================= 기록 ================= -->
+<section id="tab-records">
+  <div id="recList" class="list"></div>
+  <div id="recDetail" style="display:none"></div>
+</section>
+
+<!-- ================= 보정 ================= -->
+<section id="tab-cal">
+  <div class="card">
+    <h2>간편 비교보정 (기준 소음계, 순간값)</h2>
+    <div class="small">TES-1350A 같은 비적분형 소음계용. 소음계 A·S(Slow)·MAX HOLD 해제, 휴대폰 마이크와 나란히 같은 거리에 둡니다. 결과는 이 기기·이 브라우저 전용 레벨 오프셋이며 공인 교정이 아닙니다.</div>
+    <div id="calCurrent" style="margin-top:8px"></div>
+  </div>
+  <div class="card" id="calCard">
+    <label>기준 소음계 모델 *</label><input id="calModel" placeholder="예: TES-1350A">
+    <label>일련번호 *</label><input id="calSerial">
+    <label>최근 교정일 (없으면 ‘없음’) *</label><input id="calDate">
+    <div id="calStepBox" style="margin-top:10px"></div>
+  </div>
+</section>
+
+<!-- ================= 정보·백업 ================= -->
+<section id="tab-info">
+  <div class="card">
+    <h2>백업 (구글 드라이브에 보관)</h2>
+    <div class="small">기록은 이 휴대폰의 이 브라우저 안에만 저장됩니다. 브라우저 데이터를 지우면 사라지므로 측정 후 ‘전체 백업’을 눌러 구글 드라이브 <b>영일음향비전 (소음비전)/02_데이터백업</b>에 저장하세요.</div>
+    <div class="row" style="margin-top:10px">
+      <button class="b grow" id="btnExport">전체 백업 (공유 → Drive에 저장)</button>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <button class="o grow" id="btnImport">백업 파일에서 복원</button>
+      <input type="file" id="fileImport" style="display:none">
+    </div>
+    <div id="infoMsg" style="margin-top:8px"></div>
+  </div>
+  <div class="card">
+    <h2>정보</h2>
+    <div class="kv"><span>버전</span><span>0.4.0-web1</span></div>
+    <div class="kv"><span>저장된 현장 / 측정</span><span id="cnt">—</span></div>
+    <div class="kv"><span>마이크 처리 상태</span><span id="pp">측정 시작 후 표시</span></div>
+    <div class="small" style="margin-top:8px">
+      · 소음 숫자는 <b>참고값</b>입니다. 보정 전에는 dBFS(디지털 상대값)로 표시됩니다.<br>
+      · 웹 버전은 브라우저가 마이크 신호를 처리(자동음량·잡음억제)할 수 있습니다. 끄도록 요청하며, 실제 상태를 위 ‘마이크 처리 상태’에 표시합니다.<br>
+      · 소음계 숫자 자동 읽기(OCR)는 Android 앱 버전에만 있습니다.<br>
+      · 이 파일은 인터넷 없이 동작하며, 측정 자료를 외부로 보내지 않습니다.
+    </div>
+  </div>
+</section>
+</main>
+
+<nav>
+  <button class="on" data-tab="measure">측정</button>
+  <button data-tab="records">기록</button>
+  <button data-tab="cal">보정</button>
+  <button data-tab="info">정보·백업</button>
+</nav>
+
+<dialog id="dlgProj">
+  <h2>새 현장</h2>
+  <label>학교/현장명 *</label><input id="pSite">
+  <label>설비명 * (예: 급식실 배기팬 EF-1)</label><input id="pEquip">
+  <label>운전조건</label><input id="pCond" placeholder="예: 정격, 인버터 45 Hz">
+  <div class="row"><div class="grow"><label>회전수 RPM</label><input id="pRpm" inputmode="decimal"></div>
+  <div class="grow"><label>날개 수 Z</label><input id="pZ" inputmode="numeric"></div></div>
+  <label>기본 측정 위치</label><input id="pPos" placeholder="예: 팬 흡입구 1 m">
+  <label>개선 단계</label>
+  <select id="pStage"><option value="NOT_APPLICABLE">구분 없음</option><option value="BEFORE">개선 전</option><option value="AFTER">개선 후</option></select>
+  <label><input type="checkbox" id="pOk" style="width:auto"> 학교 촬영 승인 확인, 종사자·학생 얼굴 촬영 회피</label>
+  <div class="err" id="pErr"></div>
+  <div class="row" style="margin-top:10px"><button class="o grow" id="pCancel">취소</button><button class="b grow" id="pSave">저장</button></div>
+</dialog>
+
+<dialog id="dlgSave">
+  <h2>측정 저장</h2>
+  <label>측정 위치</label><input id="sPos">
+  <label>측정 거리 m (수동 입력, 선택)</label><input id="sDist" inputmode="decimal">
+  <div class="small">거리 출처: 수동 입력. 비워두면 거리 없음(값을 만들지 않음).</div>
+  <label>메모</label><textarea id="sNote" rows="2"></textarea>
+  <div class="err" id="sErr"></div>
+  <div class="row" style="margin-top:10px"><button class="o grow" id="sCancel">취소</button><button class="b grow" id="sOk">저장</button></div>
+</dialog>
+
+<script>
+"use strict";
+/* ===================== 공통 ===================== */
+const $ = (id) => document.getElementById(id);
+const VERSION = "0.4.0-web1";
+const DISCLAIMER = "본 값은 스마트폰 기반 참고값이며 KS C IEC 61672-1 소음계에 의한 공인 측정을 대체하지 않습니다. FFT 레벨은 dBFS(디지털 상대값)입니다.";
+const fmt = (v, d = 1) => (v == null || !isFinite(v)) ? "—" : v.toFixed(d);
+const SINE_RMS_OFFSET = 3.0103; // AES17: 풀스케일 사인 = 0 dBFS
+const dbfsMs = (ms) => 10 * Math.log10(Math.max(ms, 1e-20)) + SINE_RMS_OFFSET;
+const uid = () => (crypto.randomUUID ? crypto.randomUUID() : (Date.now().toString(36) + Math.random().toString(36).slice(2)));
+const stageName = (s) => ({ BEFORE: "개선 전", AFTER: "개선 후" }[s] || "구분 없음");
+const hz = (f) => f >= 1000 ? (f / 1000).toFixed(2) + " kHz" : f.toFixed(1) + " Hz";
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+/* ===================== 저장소 (IndexedDB) ===================== */
+const DB = {
+  db: null,
+  open() {
+    return new Promise((res, rej) => {
+      const r = indexedDB.open("youngil-av", 1);
+      r.onupgradeneeded = () => {
+        const d = r.result;
+        d.createObjectStore("projects", { keyPath: "id" });
+        d.createObjectStore("measurements", { keyPath: "id" });
+        d.createObjectStore("calibration", { keyPath: "id" });
+      };
+      r.onsuccess = () => { this.db = r.result; res(); };
+      r.onerror = () => rej(r.error);
+    });
+  },
+  tx(store, mode, fn) {
+    return new Promise((res, rej) => {
+      const t = this.db.transaction(store, mode); const s = t.objectStore(store);
+      const out = fn(s); t.oncomplete = () => res(out instanceof IDBRequest ? out.result : out); t.onerror = () => rej(t.error);
+    });
+  },
+  all(store) { return this.tx(store, "readonly", (s) => s.getAll()); },
+  get(store, id) { return this.tx(store, "readonly", (s) => s.get(id)); },
+  put(store, v) { return this.tx(store, "readwrite", (s) => s.put(v)); },
+  add(store, v) { return this.tx(store, "readwrite", (s) => s.add(v)); }, // 원본 덮어쓰기 금지
+};
+
+/* ===================== DSP ===================== */
+// A 가중 해석식 (IEC 61672-1), 1 kHz 0 dB
+const F1 = 20.598997, F2 = 107.65265, F3 = 737.86223, F4 = 12194.217;
+function ra(f) { const f2 = f * f; return (F4 * F4 * f2 * f2) / ((f2 + F1 * F1) * Math.sqrt((f2 + F2 * F2) * (f2 + F3 * F3)) * (f2 + F4 * F4)); }
+const A_NORM = -20 * Math.log10(ra(1000));
+const aWeightDb = (f) => f <= 0 ? -200 : 20 * Math.log10(ra(f)) + A_NORM;
+
+// 시간영역 A 가중 IIR (사전왜곡 쌍선형, Android 앱과 동일 설계)
+function designAWeighting(fs) {
+  const zPole = (f) => { const k = Math.tan(Math.PI * f / fs); return (1 - k) / (1 + k); };
+  const sec = (z1, z2, p1, p2) => [1, -(z1 + z2), z1 * z2, -(p1 + p2), p1 * p2];
+  const p1 = zPole(F1), p2 = zPole(F2), p3 = zPole(F3), p4 = zPole(F4);
+  const s = [sec(1, 1, p1, p1), sec(1, 1, p2, p3), sec(-1, -1, p4, p4)];
+  const mag = (f) => {
+    const w = 2 * Math.PI * f / fs; let re = 1, im = 0;
+    for (const [b0, b1, b2, a1, a2] of s) {
+      const nr = b0 + b1 * Math.cos(w) + b2 * Math.cos(2 * w), ni = -b1 * Math.sin(w) - b2 * Math.sin(2 * w);
+      const dr = 1 + a1 * Math.cos(w) + a2 * Math.cos(2 * w), di = -a1 * Math.sin(w) - a2 * Math.sin(2 * w);
+      const den = dr * dr + di * di; const r = (nr * dr + ni * di) / den, i = (ni * dr - nr * di) / den;
+      const tr = re * r - im * i; im = re * i + im * r; re = tr;
+    }
+    return Math.hypot(re, im);
+  };
+  const g = 1 / mag(1000); s[0][0] *= g; s[0][1] *= g; s[0][2] *= g;
+  return { sections: s, mag };
+}
+
+// radix-2 FFT
+function makeFft(n) {
+  const cos = new Float64Array(n / 2), sin = new Float64Array(n / 2), rev = new Uint32Array(n);
+  const bits = Math.log2(n);
+  for (let i = 0; i < n / 2; i++) { cos[i] = Math.cos(2 * Math.PI * i / n); sin[i] = -Math.sin(2 * Math.PI * i / n); }
+  for (let i = 0; i < n; i++) { let r = 0, x = i; for (let b = 0; b < bits; b++) { r = (r << 1) | (x & 1); x >>= 1; } rev[i] = r; }
+  return (re, im) => {
+    for (let i = 0; i < n; i++) { const j = rev[i]; if (j > i) { let t = re[i]; re[i] = re[j]; re[j] = t; t = im[i]; im[i] = im[j]; im[j] = t; } }
+    for (let len = 2; len <= n; len <<= 1) {
+      const half = len >> 1, step = n / len;
+      for (let st = 0; st < n; st += len) {
+        for (let j = st, k = 0; j < st + half; j++, k += step) {
+          const l = j + half, tr = re[l] * cos[k] - im[l] * sin[k], ti = re[l] * sin[k] + im[l] * cos[k];
+          re[l] = re[j] - tr; im[l] = im[j] - ti; re[j] += tr; im[j] += ti;
+        }
+      }
+    }
+  };
+}
+
+function makeAnalyzer(fs, n) {
+  const fft = makeFft(n), win = new Float64Array(n);
+  for (let i = 0; i < n; i++) win[i] = 0.5 - 0.5 * Math.cos(2 * Math.PI * i / n);
+  let sum = 0, sum2 = 0; for (const w of win) { sum += w; sum2 += w * w; }
+  const re = new Float64Array(n), im = new Float64Array(n);
+  return {
+    binHz: fs / n, enbwHz: (n * sum2 / (sum * sum)) * fs / n,
+    analyze(x) { // x: Float32Array(n), 시간순
+      for (let i = 0; i < n; i++) { re[i] = x[i] * win[i]; im[i] = 0; }
+      fft(re, im);
+      const bins = n / 2 + 1, amp = new Float64Array(bins), ms = new Float64Array(bins);
+      for (let k = 0; k < bins; k++) {
+        const m2 = re[k] * re[k] + im[k] * im[k], one = (k === 0 || k === n / 2) ? 1 : 2;
+        amp[k] = 20 * Math.log10(Math.max(one * Math.sqrt(m2) / sum, 1e-10));
+        ms[k] = one * m2 / (n * sum2);
+      }
+      return { amp, ms, binHz: fs / n, fs, n };
+    },
+  };
+}
+
+function findPeaks(sp, maxPeaks = 8, minProm = 10, floor = -110, nb = 16) {
+  const db = sp.amp, lo = Math.max(2, Math.floor(20 / sp.binHz)), hi = Math.min(db.length - 3, Math.floor((sp.fs / 2) / sp.binHz));
+  const c = [];
+  for (let k = lo; k <= hi; k++) {
+    const b = db[k]; if (b < floor || b <= db[k - 1] || b < db[k + 1]) continue;
+    const w = []; for (let i = Math.max(1, k - nb); i <= Math.min(db.length - 1, k + nb); i++) w.push(db[i]);
+    w.sort((a, b) => a - b); if (b - w[w.length >> 1] < minProm) continue;
+    const a = db[k - 1], cc = db[k + 1], den = a - 2 * b + cc;
+    const d = den !== 0 ? Math.max(-0.5, Math.min(0.5, 0.5 * (a - cc) / den)) : 0;
+    c.push({ f: (k + d) * sp.binHz, db: b - 0.25 * (a - cc) * d, k });
+  }
+  c.sort((x, y) => y.db - x.db); const out = [];
+  for (const p of c) { if (!out.some((q) => Math.abs(q.k - p.k) < 3)) out.push(p); if (out.length >= maxPeaks) break; }
+  return out;
+}
+
+const NOMINAL = ["20","25","31.5","40","50","63","80","100","125","160","200","250","315","400","500","630","800","1k","1.25k","1.6k","2k","2.5k","3.15k","4k","5k","6.3k","8k","10k","12.5k","16k","20k"];
+function thirdOctave(sp) {
+  const out = [];
+  NOMINAL.forEach((lab, i) => {
+    const fc = 1000 * Math.pow(10, (i - 17) / 10), lo = fc * Math.pow(10, -1 / 20), hi = fc * Math.pow(10, 1 / 20);
+    if (hi > sp.fs / 2) return;
+    let z = 0, a = 0, cnt = 0;
+    for (let k = 1; k < sp.ms.length; k++) { const f = k * sp.binHz; if (f >= lo && f < hi) { z += sp.ms[k]; a += sp.ms[k] * Math.pow(10, aWeightDb(f) / 10); cnt++; } }
+    out.push({ label: lab, centerHz: fc, levelZDbFs: dbfsMs(z), levelADbFs: dbfsMs(a), reliable: cnt >= 3 });
+  });
+  return out;
+}
+
+function fanTones(rpm, z) {
+  if (!(rpm > 0)) return [];
+  const t = [{ label: "회전 1X", f: rpm / 60 }, { label: "회전 2X", f: 2 * rpm / 60 }];
+  if (z > 0) for (let h = 1; h <= 3; h++) t.push({ label: h === 1 ? "BPF" : "BPF " + h + "X", f: rpm * z / 60 * h });
+  return t;
+}
+function matchTones(tones, peaks, binHz) {
+  return tones.map((t) => {
+    const tol = Math.max(2 * binHz, 0.03 * t.f);
+    let best = null; for (const p of peaks) if (Math.abs(p.f - t.f) <= tol && (!best || Math.abs(p.f - t.f) < Math.abs(best.f - t.f))) best = p;
+    return { label: t.label, expectedHz: t.f, matchedHz: best ? best.f : null, levelDbFs: best ? best.db : null };
+  });
+}
+
+/* ===================== 오디오 엔진 (AudioWorklet) ===================== */
+// 측정 핵심(A 가중 IIR + Fast/Slow + LAeq + 100 ms 블록). AudioWorklet과 호환 모드(ScriptProcessor)가 같은 코드를 사용
+const CORE = `
+class LevelCore {
+  constructor(p, sr, post) {
+    this.sec = p.sections; this.z = this.sec.map(() => [0, 0]); this.post = post;
+    this.aF = 1 - Math.exp(-1 / (sr * 0.125)); this.aS = 1 - Math.exp(-1 / (sr * 1.0));
+    this.settle = sr * 0.5; this.blockN = Math.round(sr * 0.1);
+    this.n = p.fftSize; this.ring = new Float32Array(this.n); this.rp = 0; this.reset();
+  }
+  reset() { this.eF = 0; this.eS = 0; this.sumA = 0; this.sumZ = 0; this.cnt = 0; this.maxF = 0; this.minF = Infinity;
+    this.clip = 0; this.peak = 0; this.bsum = 0; this.bc = 0; this.z.forEach((z) => { z[0] = 0; z[1] = 0; }); }
+  feed(ch) {
+    for (let i = 0; i < ch.length; i++) {
+      const x = ch[i]; const ax = Math.abs(x); if (ax >= 0.999) this.clip++; if (ax > this.peak) this.peak = ax;
+      let y = x;
+      for (let s = 0; s < this.sec.length; s++) {
+        const c = this.sec[s], z = this.z[s]; const o = c[0] * y + z[0];
+        z[0] = c[1] * y - c[3] * o + z[1]; z[1] = c[2] * y - c[4] * o; y = o;
+      }
+      const y2 = y * y; this.eF += this.aF * (y2 - this.eF); this.eS += this.aS * (y2 - this.eS);
+      this.sumA += y2; this.sumZ += x * x; this.cnt++;
+      if (this.eF > this.maxF) this.maxF = this.eF; if (this.cnt > this.settle && this.eF < this.minF) this.minF = this.eF;
+      this.ring[this.rp] = x; this.rp = (this.rp + 1) % this.n;
+      this.bsum += y2; this.bc++;
+      if (this.bc >= this.blockN) {
+        const ordered = new Float32Array(this.n); ordered.set(this.ring.subarray(this.rp)); ordered.set(this.ring.subarray(0, this.rp), this.n - this.rp);
+        this.post({ eF: this.eF, eS: this.eS, sumA: this.sumA, sumZ: this.sumZ, cnt: this.cnt, maxF: this.maxF,
+          minF: this.minF, clip: this.clip, peak: this.peak, block: this.bsum / this.bc, ring: ordered });
+        this.bsum = 0; this.bc = 0;
+      }
+    }
+  }
+}`;
+const WORKLET = CORE + `
+class LevelProc extends AudioWorkletProcessor {
+  constructor(o) {
+    super(); this.c = new LevelCore(o.processorOptions, sampleRate, (m) => this.port.postMessage(m, [m.ring.buffer]));
+    this.port.onmessage = (e) => { if (e.data === "reset") this.c.reset(); };
+  }
+  process(inputs) { const ch = inputs[0] && inputs[0][0]; if (ch) this.c.feed(ch); return true; }
+}
+registerProcessor("level-proc", LevelProc);`;
+
+const FFT_N = 8192;
+const Eng = {
+  ctx: null, node: null, src: null, aStream: null, vStream: null, running: false, fs: 48000,
+  snap: null, analyzer: null, avgAmp: null, avgMs: null, avgN: 0, lastSpec: null, peaks: [], blocks: [], settings: null, label: "",
+  async start() {
+    this.aStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 1 } });
+    const tr = this.aStream.getAudioTracks()[0];
+    this.settings = tr.getSettings ? tr.getSettings() : {}; this.label = tr.label || "마이크";
+    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+    this.fs = this.ctx.sampleRate;
+    const opts = { sections: designAWeighting(this.fs).sections, fftSize: FFT_N };
+    this.analyzer = makeAnalyzer(this.fs, FFT_N);
+    this.src = this.ctx.createMediaStreamSource(this.aStream);
+    try { // 1순위: AudioWorklet (오디오 전용 스레드)
+      if (!this.ctx.audioWorklet) throw new Error("no audioWorklet");
+      const blobUrl = URL.createObjectURL(new Blob([WORKLET], { type: "application/javascript" }));
+      await this.ctx.audioWorklet.addModule(blobUrl);
+      this.node = new AudioWorkletNode(this.ctx, "level-proc", { numberOfInputs: 1, numberOfOutputs: 0, processorOptions: opts });
+      this.node.port.onmessage = (e) => this.onBlock(e.data);
+      this.src.connect(this.node); this.mode = "AudioWorklet"; this.resetFn = () => this.node.port.postMessage("reset");
+    } catch (e) { // 2순위: 호환 모드 — 파일로 직접 열었을 때 등 (같은 계산 코드)
+      const Core = new Function(CORE + "; return LevelCore;")();
+      const core = new Core(opts, this.fs, (m) => this.onBlock(m));
+      this.node = this.ctx.createScriptProcessor(4096, 1, 1);
+      this.node.onaudioprocess = (ev) => core.feed(ev.inputBuffer.getChannelData(0));
+      this.src.connect(this.node); this.node.connect(this.ctx.destination); // 출력은 무음
+      this.mode = "호환 모드(ScriptProcessor)"; this.resetFn = () => core.reset();
+    }
+    if (this.ctx.state === "suspended") await this.ctx.resume();
+    this.resetLocal(); this.running = true;
+  },
+  resetLocal() { this.avgAmp = null; this.avgMs = null; this.avgN = 0; this.blocks = []; this.snap = null; this.fftTick = 0; },
+  reset() { if (this.resetFn) this.resetFn(); this.resetLocal(); },
+  onBlock(d) {
+    this.snap = d; this.blocks.push(d.block);
+    if (++this.fftTick % 2 === 0 && d.cnt >= FFT_N) { // 약 0.2 s마다 FFT (50 % 이상 중첩)
+      const sp = this.analyzer.analyze(d.ring); this.lastSpec = sp; this.peaks = findPeaks(sp, 6);
+      if (!this.avgAmp) { this.avgAmp = new Float64Array(sp.amp.length); this.avgMs = new Float64Array(sp.ms.length); }
+      for (let k = 0; k < sp.amp.length; k++) { this.avgAmp[k] += Math.pow(10, sp.amp[k] / 10); this.avgMs[k] += sp.ms[k]; }
+      this.avgN++;
+    }
+    UI.onLevels();
+  },
+  levels() {
+    const d = this.snap; if (!d) return null;
+    return { laf: dbfsMs(d.eF), las: dbfsMs(d.eS), laeq: d.cnt ? dbfsMs(d.sumA / d.cnt) : null, max: d.cnt ? dbfsMs(d.maxF) : null,
+      min: isFinite(d.minF) ? dbfsMs(d.minF) : null, lzeq: d.cnt ? dbfsMs(d.sumZ / d.cnt) : null,
+      peak: 20 * Math.log10(Math.max(d.peak, 1e-10)), dur: d.cnt / this.fs, clip: d.clip };
+  },
+  avgSpectrum() {
+    if (!this.avgN) return null; const n = this.avgN;
+    return { amp: Array.from(this.avgAmp, (v) => 10 * Math.log10(Math.max(v / n, 1e-20))), ms: Array.from(this.avgMs, (v) => v / n), binHz: this.fs / FFT_N, fs: this.fs, n: FFT_N };
+  },
+  async startCamera(video) {
+    try {
+      this.vStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 960 } } });
+      video.srcObject = this.vStream; await video.play(); return null;
+    } catch (e) { return e; }
+  },
+  stop() {
+    this.running = false;
+    try { this.src && this.src.disconnect(); this.node && this.node.disconnect(); } catch (e) {}
+    this.aStream && this.aStream.getTracks().forEach((t) => t.stop());
+    this.vStream && this.vStream.getTracks().forEach((t) => t.stop());
+    this.ctx && this.ctx.close(); this.ctx = null; this.vStream = null;
+  },
+  preprocessingText() {
+    const s = this.settings || {}; const f = (v) => v === false ? "꺼짐" : v === true ? "켜짐(⚠)" : "알 수 없음";
+    return `자동음량 ${f(s.autoGainControl)} · 잡음억제 ${f(s.noiseSuppression)} · 에코제거 ${f(s.echoCancellation)}`;
+  },
+};
+
+/* ===================== 상태 ===================== */
+const S = { projects: [], current: null, markers: [], selected: null, cal: null, wakeLock: null };
+
+async function loadCal() { S.cal = await DB.get("calibration", "active") || null; }
+const calOffset = () => (S.cal && S.cal.status === "ACTIVE") ? S.cal.offsetDb : null;
+function levelA(dbfs) { if (dbfs == null || !isFinite(dbfs)) return "—"; const o = calOffset(); return o != null ? (dbfs + o).toFixed(1) + " dB(A)" : dbfs.toFixed(1) + " dBFS(A)"; }
+function calTagHtml(cal) { return cal && cal.status === "ACTIVE" ? '<span class="tag t-ok">참고값 · 기준소음계 비교보정</span>' : '<span class="tag t-warn">미보정 · 상대값(dBFS)</span>'; }
+
+/* ===================== UI: 공통 ===================== */
+const UI = {
+  tab(name) {
+    document.querySelectorAll("nav button").forEach((b) => b.classList.toggle("on", b.dataset.tab === name));
+    document.querySelectorAll("main section").forEach((s) => s.classList.toggle("on", s.id === "tab-" + name));
+    if (name === "records") Records.renderList();
+    if (name === "cal") Cal.render();
+    if (name === "info") Info.render();
+    window.scrollTo(0, 0);
+  },
+  async refreshProjects() {
+    S.projects = (await DB.all("projects")).sort((a, b) => b.createdAtEpochMs - a.createdAtEpochMs);
+    const sel = $("projSel"); const cur = S.current && S.current.id;
+    sel.innerHTML = S.projects.length ? S.projects.map((p) => `<option value="${p.id}">${esc(p.siteName)} · ${esc(p.equipmentName)}</option>`).join("") : '<option value="">(먼저 ‘+ 새 현장’을 등록하세요)</option>';
+    S.current = S.projects.find((p) => p.id === cur) || S.projects[0] || null;
+    if (S.current) sel.value = S.current.id;
+    this.projInfo();
+  },
+  projInfo() {
+    const p = S.current;
+    $("projInfo").innerHTML = p ? `${stageName(p.stage)} · ${p.rpm ? "RPM " + p.rpm : "RPM 미입력"} · ${p.bladeCount ? "날개 " + p.bladeCount : "날개 수 미입력"}${p.filmingApprovalConfirmed ? "" : ' · <span style="color:var(--warn)">촬영 승인 미확인</span>'}` : "";
+  },
+  onLevels() { if (!this.raf) this.raf = requestAnimationFrame(() => { this.raf = 0; this.drawMeasure(); }); },
+  drawMeasure() {
+    const L = Eng.levels(); if (!L) return;
+    $("lvlBig").textContent = levelA(L.laf);
+    $("vLeq").textContent = levelA(L.laeq); $("vMax").textContent = levelA(L.max); $("vMin").textContent = levelA(L.min);
+    $("vDur").textContent = L.dur.toFixed(0) + " s";
+    $("cfgLine").textContent = `fs ${Eng.fs} Hz · FFT ${FFT_N} · Hann · Δf ${(Eng.fs / FFT_N).toFixed(2)} Hz · ${Eng.label} · ${Eng.mode}`;
+    const w = [];
+    if (L.clip > 0) w.push("⚠ 입력 포화(클리핑) " + L.clip + " 샘플 — 레벨이 낮게 계산될 수 있음");
+    const s = Eng.settings || {}; if (s.autoGainControl === true || s.noiseSuppression === true) w.push("⚠ 브라우저 마이크 처리(자동음량/잡음억제)가 켜져 있음 — 레벨·스펙트럼 왜곡 가능");
+    $("warns").innerHTML = w.map((t) => `<div class="warnline">${t}</div>`).join("");
+    const tones = S.current ? fanTones(S.current.rpm, S.current.bladeCount) : [];
+    if (tones.length && Eng.lastSpec) {
+      const m = matchTones(tones, Eng.peaks, Eng.lastSpec.binHz).filter((x) => x.matchedHz != null);
+      $("toneLine").textContent = m.length ? "후보 일치: " + m.map((x) => `${x.label} ${hz(x.expectedHz)}→${hz(x.matchedHz)}`).join(", ") : "";
+    } else $("toneLine").textContent = "";
+    drawSpectrum($("spec"), Eng.lastSpec, Eng.peaks, tones);
+  },
+};
+
+/* ===================== 그래프 ===================== */
+function fitCanvas(c) { const r = c.getBoundingClientRect(), d = window.devicePixelRatio || 1; if (c.width !== Math.round(r.width * d) || c.height !== Math.round(r.height * d)) { c.width = Math.round(r.width * d); c.height = Math.round(r.height * d); } const g = c.getContext("2d"); g.setTransform(d, 0, 0, d, 0, 0); return { g, w: r.width, h: r.height }; }
+function drawSpectrum(c, sp, peaks, tones) {
+  const { g, w, h } = fitCanvas(c); g.clearRect(0, 0, w, h);
+  const fMin = 20, fMax = Math.min(20000, sp ? sp.fs / 2 : 24000), dbMin = -130, dbMax = 0;
+  const L = 32, R = w - 4, T = 14, B = h - 16;
+  const x = (f) => L + (R - L) * Math.log(f / fMin) / Math.log(fMax / fMin), y = (d) => T + (B - T) * (dbMax - d) / (dbMax - dbMin);
+  g.font = "9px sans-serif"; g.fillStyle = "#9FB0C8"; g.strokeStyle = "rgba(255,255,255,.15)"; g.lineWidth = 1;
+  for (let d = -120; d <= 0; d += 20) { g.beginPath(); g.moveTo(L, y(d)); g.lineTo(R, y(d)); g.stroke(); g.fillText(String(d), 2, y(d) + 3); }
+  for (const f of [31.5, 63, 125, 250, 500, 1000, 2000, 4000, 8000, 16000]) if (f <= fMax) { g.beginPath(); g.moveTo(x(f), T); g.lineTo(x(f), B); g.stroke(); g.fillText(f >= 1000 ? f / 1000 + "k" : String(f), x(f) - 6, h - 3); }
+  g.fillText("dBFS (디지털 상대값, 음압레벨 아님)", L + 4, 10);
+  g.setLineDash([6, 5]); g.strokeStyle = "#3478F6"; g.fillStyle = "#3478F6";
+  for (const t of tones || []) if (t.f >= fMin && t.f <= fMax) { g.beginPath(); g.moveTo(x(t.f), T); g.lineTo(x(t.f), B); g.stroke(); g.fillText(t.label, x(t.f) + 2, T + 9); }
+  g.setLineDash([]);
+  if (!sp) return;
+  g.strokeStyle = "#fff"; g.lineWidth = 1.4; g.beginPath();
+  // 로그축 화소당 최대값
+  let started = false; const cols = Math.max(100, Math.floor(R - L));
+  for (let i = 0; i < cols; i++) {
+    const f0 = fMin * Math.pow(fMax / fMin, i / cols), f1 = fMin * Math.pow(fMax / fMin, (i + 1) / cols);
+    const k0 = Math.max(1, Math.floor(f0 / sp.binHz)), k1 = Math.max(k0, Math.floor(f1 / sp.binHz));
+    let m = -200; for (let k = k0; k <= k1 && k < sp.amp.length; k++) m = Math.max(m, sp.amp[k]);
+    const px = L + (R - L) * i / cols, py = y(Math.max(dbMin, Math.min(dbMax, m)));
+    if (!started) { g.moveTo(px, py); started = true; } else g.lineTo(px, py);
+  }
+  g.stroke();
+  g.fillStyle = "#FFC107";
+  for (const p of peaks || []) if (p.f >= fMin && p.f <= fMax) { const px = x(p.f), py = y(Math.max(dbMin, p.db)); g.beginPath(); g.arc(px, py, 3, 0, 7); g.fill(); g.fillText(hz(p.f), px + 3, Math.max(T + 8, py - 6)); }
+}
+function drawMarkers(c, markers, selected) {
+  const { g, w, h } = fitCanvas(c); g.clearRect(0, 0, w, h);
+  for (const m of markers) {
+    const cx = m.x * w, cy = m.y * h, col = m.source === "EXPERT_EDITED" ? "#FFC107" : "#E53935";
+    g.strokeStyle = col; g.lineWidth = m.id === selected ? 5 : 3; g.setLineDash(m.source === "MANUAL" ? [10, 7] : []);
+    g.beginPath(); g.arc(cx, cy, 24, 0, 7); g.stroke(); g.setLineDash([]); g.lineWidth = 2;
+    g.beginPath(); g.moveTo(cx - 8, cy); g.lineTo(cx + 8, cy); g.moveTo(cx, cy - 8); g.lineTo(cx, cy + 8); g.stroke();
+    const src = { MANUAL: "수동", AUTO: "자동", EXPERT_EDITED: "전문가수정" }[m.source];
+    const t = `${m.label} (${src})`; g.font = "bold 13px sans-serif"; const tw = g.measureText(t).width;
+    g.fillStyle = "rgba(0,0,0,.6)"; g.fillRect(cx - 24, cy + 27, tw + 8, 18); g.fillStyle = col; g.fillText(t, cx - 20, cy + 41);
+  }
+}
+
+/* ===================== 측정 화면 ===================== */
+const Measure = {
+  async start() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      alert("이 브라우저에서는 마이크를 사용할 수 없습니다.\n휴대폰의 Chrome으로 열거나, 보안 연결(https) 주소로 여세요."); return;
+    }
+    try { await Eng.start(); }
+    catch (e) {
+      $("camMsg").innerHTML = `<span class="err">마이크를 시작할 수 없습니다: ${esc(e.name || e.message)}<br>권한을 허용하거나 Chrome에서 다시 여세요. 측정값을 임의로 만들지 않습니다.</span>`; return;
+    }
+    const camErr = await Eng.startCamera($("video"));
+    $("camMsg").textContent = camErr ? "카메라 없이 측정합니다 (" + (camErr.name || "권한 없음") + ")" : "";
+    $("btnStart").textContent = "측정 정지"; ["btnReset", "btnSave"].forEach((id) => $(id).disabled = false);
+    try { if (navigator.wakeLock) S.wakeLock = await navigator.wakeLock.request("screen"); } catch (e) {}
+    $("pp") && ($("pp").textContent = Eng.preprocessingText());
+  },
+  stop() {
+    Eng.stop(); $("btnStart").textContent = "측정 시작"; ["btnReset", "btnSave"].forEach((id) => $(id).disabled = true);
+    $("camMsg").textContent = "측정 정지됨"; try { S.wakeLock && S.wakeLock.release(); } catch (e) {}
+  },
+  tap(ev) {
+    const c = $("ov"), r = c.getBoundingClientRect(); const px = ev.clientX - r.left, py = ev.clientY - r.top;
+    const hit = S.markers.find((m) => Math.hypot(m.x * r.width - px, m.y * r.height - py) <= 28);
+    if (hit) S.selected = S.selected === hit.id ? null : hit.id;
+    else {
+      const m = { id: uid(), source: "MANUAL", x: Math.min(1, Math.max(0, px / r.width)), y: Math.min(1, Math.max(0, py / r.height)),
+        label: "M" + (S.markers.length + 1), createdAtEpochMs: Date.now(), originalEstimate: null, edits: [],
+        limitations: ["수동 지정 위치 — 사용자의 판단이며 측정으로 확인된 음원 위치가 아님"] };
+      S.markers.push(m); S.selected = m.id;
+    }
+    $("btnDelMk").disabled = !S.selected; drawMarkers(c, S.markers, S.selected);
+  },
+  delMarker() { S.markers = S.markers.filter((m) => m.id !== S.selected); S.selected = null; $("btnDelMk").disabled = true; drawMarkers($("ov"), S.markers, null); },
+  snapshot() { // 화면에 보이는 영역 그대로 (마커 정규화 좌표와 동일 기준)
+    const v = $("video"); if (!v.videoWidth) return null;
+    const st = $("stage").getBoundingClientRect(), W = 960, H = Math.round(W * st.height / st.width);
+    const c = document.createElement("canvas"); c.width = W; c.height = H; const g = c.getContext("2d");
+    const vr = v.videoWidth / v.videoHeight, cr = W / H; let sx = 0, sy = 0, sw = v.videoWidth, sh = v.videoHeight;
+    if (vr > cr) { sw = v.videoHeight * cr; sx = (v.videoWidth - sw) / 2; } else { sh = v.videoWidth / cr; sy = (v.videoHeight - sh) / 2; }
+    g.drawImage(v, sx, sy, sw, sh, 0, 0, W, H); return c.toDataURL("image/jpeg", 0.85);
+  },
+  openSave() {
+    if (!S.current) { alert("먼저 ‘+ 새 현장’을 등록하세요."); return; }
+    $("sPos").value = S.current.defaultPosition || ""; $("sDist").value = ""; $("sNote").value = ""; $("sErr").textContent = "";
+    $("dlgSave").showModal();
+  },
+  async save() {
+    const L = Eng.levels(); const err = (t) => { $("sErr").textContent = t; };
+    if (!L) return err("분석 데이터가 없습니다");
+    if (L.dur < 3) return err("최소 3초 이상 측정 후 저장하세요");
+    let distance = null; const dt = $("sDist").value.trim();
+    if (dt) { const v = parseFloat(dt); if (!(v > 0)) return err("거리는 0보다 큰 숫자(m)로 입력하세요");
+      distance = { source: "MANUAL", meters: v, note: "사용자 수동 입력 · 표면까지의 거리이며 실제 음원 거리와 다를 수 있음" }; }
+    const sp = Eng.avgSpectrum(); const peaks = sp ? findPeaks(sp, 10) : []; const p = S.current;
+    const tones = fanTones(p.rpm, p.bladeCount); const off = calOffset();
+    const m = {
+      schemaVersion: 1, id: "w" + Date.now(), projectId: p.id, createdAtEpochMs: Date.now(), positionLabel: $("sPos").value.trim(),
+      stage: p.stage, operatingCondition: p.operatingCondition || "", rpm: p.rpm || null, bladeCount: p.bladeCount || null,
+      device: { platform: "web", userAgent: navigator.userAgent, appVersion: VERSION },
+      audio: { audioSource: "getUserMedia", sampleRate: Eng.fs, encoding: "float32", channelCount: 1, fftSize: FFT_N, window: "Hann",
+        binHz: Eng.fs / FFT_N, inputDeviceName: Eng.label, engineMode: Eng.mode, preprocessing: Eng.settings || {}, preprocessingText: Eng.preprocessingText() },
+      calibration: S.cal && S.cal.status === "ACTIVE" ? { state: "REFERENCE_COMPARED", offsetDb: off, profileId: S.cal.profileId, note: S.cal.method } : { state: "UNCALIBRATED", offsetDb: null },
+      level: { origin: "MEASURED", laeqDbFs: L.laeq, lafMaxDbFs: L.max, lafMinDbFs: L.min, lzeqDbFs: L.lzeq, samplePeakDbFs: L.peak, durationSec: L.dur, clippedSamples: L.clip, calibrationOffsetDb: off },
+      peaks: peaks.map((x) => ({ frequencyHz: x.f, levelDbFs: x.db })),
+      thirdOctave: sp ? thirdOctave(sp) : [],
+      toneMatches: sp && tones.length ? matchTones(tones, peaks, sp.binHz) : [],
+      markers: S.markers.slice(), distance, snapshot: this.snapshot(), notes: $("sNote").value.trim(), disclaimer: DISCLAIMER,
+    };
+    try { await DB.add("measurements", m); } catch (e) { return err("저장 실패: " + (e && e.message)); }
+    $("dlgSave").close(); S.markers = []; S.selected = null; drawMarkers($("ov"), [], null); Eng.reset();
+    UI.tab("records"); Records.show(m.id);
+  },
+};
+
+/* ===================== 기록 ===================== */
+const Records = {
+  async renderList() {
+    $("recDetail").style.display = "none"; const list = $("recList"); list.style.display = "block";
+    const ms = (await DB.all("measurements")).sort((a, b) => b.createdAtEpochMs - a.createdAtEpochMs);
+    const pm = Object.fromEntries((await DB.all("projects")).map((p) => [p.id, p]));
+    list.innerHTML = ms.length ? ms.map((m) => {
+      const p = pm[m.projectId] || {}; const off = m.level.calibrationOffsetDb;
+      const la = m.level.laeqDbFs == null ? "—" : off != null ? (m.level.laeqDbFs + off).toFixed(1) + " dB(A)" : m.level.laeqDbFs.toFixed(1) + " dBFS(A)";
+      return `<div class="it" data-id="${m.id}"><div class="t">${esc(p.siteName || "(현장)")} · ${esc(m.positionLabel || "(위치 미입력)")}</div>
+        <div class="small">${new Date(m.createdAtEpochMs).toLocaleString("ko-KR")} · ${stageName(m.stage)} · 마커 ${m.markers.length} · LAeq ${la}</div></div>`;
+    }).join("") : '<div class="card small">저장된 측정이 없습니다.</div>';
+    list.querySelectorAll(".it").forEach((el) => el.onclick = () => this.show(el.dataset.id));
+  },
+  async show(id) {
+    const m = await DB.get("measurements", id); if (!m) return;
+    const p = (await DB.get("projects", m.projectId)) || {}; const off = m.level.calibrationOffsetDb;
+    const A = (v) => v == null ? "—" : off != null ? (v + off).toFixed(1) + " dB(A)" : v.toFixed(1) + " dBFS(A)";
+    const Z = (v) => v == null ? "—" : off != null ? (v + off).toFixed(1) + " dB(Z)" : v.toFixed(1) + " dBFS(Z)";
+    $("recList").style.display = "none"; const d = $("recDetail"); d.style.display = "block";
+    d.innerHTML = `<button class="o" id="recBack">‹ 목록</button>
+      <div class="card" style="margin-top:10px">
+        ${m.snapshot ? '<div style="position:relative"><img id="recImg" src="' + m.snapshot + '" style="width:100%;display:block;border-radius:8px"><canvas id="recOv" style="position:absolute;inset:0;width:100%;height:100%"></canvas></div>' : '<div class="small">화면 스냅샷 없음 (카메라 미사용)</div>'}
+        <div style="margin-top:8px">${m.calibration.state === "UNCALIBRATED" ? '<span class="tag t-warn">미보정 · 상대값(dBFS)</span>' : '<span class="tag t-ok">참고값 · 기준소음계 비교보정</span>'}</div>
+        <div class="big" style="margin-top:6px">${esc(p.siteName || "")} · ${esc(m.positionLabel || "(위치 미입력)")}</div>
+        <div class="small">${new Date(m.createdAtEpochMs).toLocaleString("ko-KR")} · ${stageName(m.stage)} · ${m.level.durationSec.toFixed(0)} s</div>
+        <h2 style="margin-top:12px">소음도</h2>
+        <div class="kv"><span>LAeq</span><span>${A(m.level.laeqDbFs)}</span></div>
+        <div class="kv"><span>LAFmax</span><span>${A(m.level.lafMaxDbFs)}</span></div>
+        <div class="kv"><span>LAFmin</span><span>${A(m.level.lafMinDbFs)}</span></div>
+        <div class="kv"><span>LZeq</span><span>${Z(m.level.lzeqDbFs)}</span></div>
+        ${m.level.clippedSamples ? '<div class="warnline">⚠ 클리핑 ' + m.level.clippedSamples + ' 샘플 — 레벨 신뢰도 낮음</div>' : ""}
+        <h2 style="margin-top:12px">주요 피크 (평균 스펙트럼, dBFS)</h2>
+        ${m.peaks.length ? m.peaks.map((x) => `<div class="kv"><span>${hz(x.frequencyHz)}</span><span>${x.levelDbFs.toFixed(1)} dBFS</span></div>`).join("") : '<div class="small">검출된 피크 없음</div>'}
+        ${m.toneMatches.length ? '<h2 style="margin-top:12px">송풍기 주파수 후보 (명판 RPM 기준)</h2>' + m.toneMatches.map((t) => `<div class="kv"><span>${t.label} ${hz(t.expectedHz)}</span><span>${t.matchedHz != null ? "피크 " + hz(t.matchedHz) : "일치 없음"}</span></div>`).join("") : ""}
+        <h2 style="margin-top:12px">1/3 옥타브 A가중 (FFT 근사)</h2><canvas id="recBands" style="width:100%;height:130px"></canvas>
+        <h2 style="margin-top:12px">거리 · 마커</h2>
+        <div class="kv"><span>거리</span><span>${m.distance ? m.distance.meters + " m (수동 입력, 표면거리)" : "입력하지 않음"}</span></div>
+        ${m.markers.map((k) => `<div class="kv"><span>${k.label} · ${k.source}</span><span>x ${k.x.toFixed(2)}, y ${k.y.toFixed(2)}</span></div>`).join("") || '<div class="small">마커 없음</div>'}
+        <h2 style="margin-top:12px">측정 조건</h2>
+        <div class="kv"><span>입력</span><span>${esc(m.audio.inputDeviceName)}</span></div>
+        <div class="kv"><span>FFT</span><span>fs ${m.audio.sampleRate} Hz · N ${m.audio.fftSize} · Hann</span></div>
+        <div class="kv"><span>마이크 처리</span><span>${esc(m.audio.preprocessingText)}</span></div>
+        ${m.notes ? '<div class="kv"><span>메모</span><span>' + esc(m.notes) + "</span></div>" : ""}
+        <div class="small" style="color:var(--warn);margin-top:10px">${m.disclaimer}</div>
+      </div>
+      <button class="o" id="recJson" style="width:100%">이 측정 JSON 내려받기</button>`;
+    $("recBack").onclick = () => this.renderList();
+    $("recJson").onclick = () => saveFile(`측정_${m.id}.json`, JSON.stringify(m, null, 2));
+    if (m.snapshot) $("recImg").onload = () => drawMarkers($("recOv"), m.markers, null);
+    drawBands($("recBands"), m.thirdOctave, off);
+    window.scrollTo(0, 0);
+  },
+};
+function drawBands(c, bands, off) {
+  const { g, w, h } = fitCanvas(c); g.clearRect(0, 0, w, h); if (!bands.length) return;
+  const vals = bands.map((b) => b.levelADbFs + (off || 0)); const hi = Math.max(...vals) + 5, lo = hi - 80, bw = w / bands.length, base = h - 14;
+  g.font = "8px sans-serif";
+  bands.forEach((b, i) => { const v = Math.max(lo, Math.min(hi, vals[i])), bh = base * (v - lo) / (hi - lo);
+    g.fillStyle = b.reliable ? "#3478F6" : "#777"; g.fillRect(i * bw + 1, base - bh, bw - 2, bh);
+    if (i % 3 === 0) { g.fillStyle = "#9FB0C8"; g.fillText(b.label, i * bw, h - 3); } });
+}
+
+/* ===================== 간편 비교보정 ===================== */
+const Cal = {
+  phase: "CAL", result: null, pending: null,
+  render() {
+    const c = S.cal;
+    $("calCurrent").innerHTML = calTagHtml(c) + (c ? `<div class="small" style="margin-top:6px">${c.status === "ACTIVE" ? "활성" : "보류"} · 오프셋 ${c.offsetDb.toFixed(2)} dB · ${esc(c.instrument.model)} · 검증 오차 ${c.validationErrorDb != null ? c.validationErrorDb.toFixed(2) + " dB" : "—"} · ${new Date(c.createdAtEpochMs).toLocaleDateString("ko-KR")}</div>` : "");
+    this.renderStep();
+  },
+  renderStep(msg) {
+    const box = $("calStepBox"); const label = this.phase === "CAL" ? "① 보정 측정" : "② 독립 검증 측정";
+    box.innerHTML = `<h2>${label}</h2>
+      <div class="small">‘15초 측정’을 누르면 15초 동안 측정합니다. 끝나는 순간 화면이 하얗게 깜박이고 진동합니다. <b>그 순간 소음계에 표시된 값</b>을 아래에 입력하세요. 매우 안정된 소음(1초값 표준편차 ≤ 0.5 dB)에서만 확정됩니다.</div>
+      <div id="calLive" class="big" style="margin:10px 0;padding:12px;border-radius:10px;background:var(--navy)">—</div>
+      <button class="b" id="calGo" style="width:100%">15초 측정</button>
+      <div id="calRes" style="margin-top:8px"></div>${msg ? '<div style="margin-top:8px">' + msg + "</div>" : ""}`;
+    $("calGo").onclick = () => this.measure();
+  },
+  async measure() {
+    const inst = { model: $("calModel").value.trim(), serial: $("calSerial").value.trim(), calibrationDate: $("calDate").value.trim() };
+    if (!inst.model || !inst.serial || !inst.calibrationDate) { $("calRes").innerHTML = '<span class="err">기준 소음계 모델·일련번호·교정일을 입력하세요</span>'; return; }
+    if (!Eng.running) { try { await Eng.start(); } catch (e) { $("calRes").innerHTML = '<span class="err">마이크를 시작할 수 없습니다</span>'; return; } }
+    $("calGo").disabled = true; Eng.reset();
+    const t0 = performance.now(), secLevels = []; let lastSec = 0;
+    await new Promise((resolve) => {
+      const tick = () => {
+        const L = Eng.levels(), el = (performance.now() - t0) / 1000;
+        if (L) { $("calLive").textContent = `측정 중 ${el.toFixed(1)} / 15 s · LAS ${L.las.toFixed(1)} dBFS`; if (Math.floor(el) > lastSec) { lastSec = Math.floor(el); secLevels.push(L.las); } }
+        if (el >= 15) resolve(); else setTimeout(tick, 100);
+      }; tick();
+    });
+    const L = Eng.levels(); const box = $("calLive"); box.classList.add("flash"); try { navigator.vibrate && navigator.vibrate(400); } catch (e) {}
+    setTimeout(() => box.classList.remove("flash"), 600);
+    const mean = secLevels.reduce((a, b) => a + b, 0) / secLevels.length, std = Math.sqrt(secLevels.reduce((a, b) => a + (b - mean) * (b - mean), 0) / secLevels.length);
+    this.pending = { appLasDbFs: L.las, std, clip: L.clip, inst, at: Date.now(), settings: Eng.settings };
+    box.textContent = `앱 LAS ${L.las.toFixed(2)} dBFS(A) (끝나는 순간 값)`;
+    $("calGo").disabled = false;
+    const reasons = [];
+    if (std > 0.5) reasons.push(`소음 변동이 큼 (1초값 표준편차 ${std.toFixed(2)} dB > 0.5) — 안정된 소음에서 재측정`);
+    if (L.clip > 0) reasons.push("입력 포화(클리핑)");
+    const s = Eng.settings || {}; if (s.autoGainControl === true || s.noiseSuppression === true) reasons.push("브라우저 마이크 처리(자동음량/잡음억제) 켜짐");
+    if (reasons.length) { $("calRes").innerHTML = reasons.map((r) => `<div class="err">· ${r}</div>`).join("") + '<div class="small">위 사유로 확정할 수 없습니다. 다시 측정하세요.</div>'; return; }
+    $("calRes").innerHTML = `<label>그 순간 소음계 표시값 dB (A, S) *</label><input id="calRef" inputmode="decimal">
+      <label><input type="checkbox" id="calChk" style="width:auto"> 소음계가 A·S(Slow)·MAX HOLD 해제였고, 끝나는 순간의 값을 읽었습니다</label>
+      <button class="b" id="calOk" style="width:100%;margin-top:8px">${this.phase === "CAL" ? "확인 · 오프셋 산출" : "확인 · 검증"}</button><div id="calErr" class="err"></div>`;
+    $("calOk").onclick = () => this.confirm();
+  },
+  async confirm() {
+    const ref = parseFloat($("calRef").value); const p = this.pending;
+    if (!(ref >= 20 && ref <= 140)) { $("calErr").textContent = "20~140 dB 사이의 값을 입력하세요"; return; }
+    if (!$("calChk").checked) { $("calErr").textContent = "확인란을 체크하세요"; return; }
+    if (this.phase === "CAL") {
+      this.result = { profileId: "wcp-" + Date.now(), createdAtEpochMs: Date.now(), method: "간편 비교보정(순간값 S, 웹)", instrument: p.inst,
+        calibration: { referenceDb: ref, appLasDbFs: p.appLasDbFs, std: p.std }, offsetDb: ref - p.appLasDbFs, inputDeviceName: Eng.label, settings: p.settings, status: "PENDING" };
+      this.phase = "VAL";
+      this.renderStep(`<span style="color:var(--ok)">보정 오프셋 ${this.result.offsetDb.toFixed(2)} dB 산출. 이어서 ② 독립 검증 측정을 하세요.</span>`);
+    } else {
+      const r = this.result, err = (p.appLasDbFs + r.offsetDb) - ref, pass = Math.abs(err) <= 1.0;
+      r.validation = { referenceDb: ref, appLasDbFs: p.appLasDbFs, errorDb: err, toleranceDb: 1.0, passed: pass }; r.validationErrorDb = err;
+      if (pass) {
+        $("calRes").innerHTML = `<div style="color:var(--ok)">검증 합격 (오차 ${err.toFixed(2)} dB, 허용 ±1.0 dB 잠정)</div><button class="b" id="calAct" style="width:100%;margin-top:8px">보정 활성화 승인</button>`;
+        $("calAct").onclick = async () => { r.status = "ACTIVE"; r.id = "active"; r.activatedAtEpochMs = Date.now(); await DB.put("calibration", r);
+          await DB.put("calibration", Object.assign({}, r, { id: r.profileId })); S.cal = r; this.phase = "CAL"; this.render(); };
+      } else {
+        r.status = "REJECTED"; await DB.put("calibration", Object.assign({}, r, { id: r.profileId }));
+        this.phase = "CAL"; this.renderStep(`<span class="err">검증 불합격 (오차 ${err.toFixed(2)} dB) — 보정은 적용되지 않았습니다. 처음부터 다시 하세요.</span>`);
+      }
+    }
+  },
+};
+
+/* ===================== 백업 ===================== */
+function saveFile(name, text) {
+  const blob = new Blob([text], { type: "application/json" });
+  const file = new File([blob], name, { type: "application/json" });
+  if (navigator.canShare && navigator.canShare({ files: [file] })) { return navigator.share({ files: [file], title: name }).catch(() => download(blob, name)); }
+  download(blob, name);
+}
+function download(blob, name) { const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000); }
+const Info = {
+  async render() {
+    const p = await DB.all("projects"), m = await DB.all("measurements"); $("cnt").textContent = `${p.length} / ${m.length}`;
+    if (Eng.settings) $("pp").textContent = Eng.preprocessingText();
+  },
+  async exportAll() {
+    const data = { format: "youngil-acoustic-vision-web-backup/1", appVersion: VERSION, createdAtEpochMs: Date.now(),
+      projects: await DB.all("projects"), measurements: await DB.all("measurements"), calibration: await DB.all("calibration") };
+    const d = new Date(), stamp = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}-${String(d.getHours()).padStart(2, "0")}${String(d.getMinutes()).padStart(2, "0")}`;
+    await saveFile(`음향비전_백업_${stamp}.json`, JSON.stringify(data));
+    $("infoMsg").innerHTML = `<span style="color:var(--ok)">백업 파일 생성: 현장 ${data.projects.length}, 측정 ${data.measurements.length}. 공유 화면에서 ‘Drive’를 고르면 바로 저장됩니다.</span>`;
+  },
+  async importFile(f) {
+    try {
+      const data = JSON.parse(await f.text());
+      if (data.format !== "youngil-acoustic-vision-web-backup/1") throw new Error("이 앱의 백업 파일이 아닙니다");
+      let added = 0, kept = 0;
+      for (const [store, arr] of [["projects", data.projects], ["measurements", data.measurements], ["calibration", data.calibration]]) {
+        for (const v of arr || []) { if (await DB.get(store, v.id)) { kept++; continue; } await DB.put(store, v); added++; }
+      }
+      $("infoMsg").innerHTML = `<span style="color:var(--ok)">복원 완료: ${added}개 추가, 기존 ${kept}개 유지(덮어쓰지 않음)</span>`;
+      await UI.refreshProjects(); await loadCal(); this.render();
+    } catch (e) { $("infoMsg").innerHTML = `<span class="err">복원 실패: ${esc(e.message)} (변경된 데이터 없음)</span>`; }
+  },
+};
+
+/* ===================== 현장 등록 ===================== */
+const Proj = {
+  open() { ["pSite", "pEquip", "pCond", "pRpm", "pZ", "pPos"].forEach((i) => $(i).value = ""); $("pStage").value = "NOT_APPLICABLE"; $("pOk").checked = false; $("pErr").textContent = ""; $("dlgProj").showModal(); },
+  async save() {
+    const site = $("pSite").value.trim(), eq = $("pEquip").value.trim(); const rpm = parseFloat($("pRpm").value), z = parseInt($("pZ").value, 10);
+    if (!site) return $("pErr").textContent = "현장명은 필수입니다"; if (!eq) return $("pErr").textContent = "설비명은 필수입니다";
+    const p = { id: uid(), siteName: site, equipmentName: eq, operatingCondition: $("pCond").value.trim(), rpm: rpm > 0 ? rpm : null, bladeCount: z > 0 ? z : null,
+      defaultPosition: $("pPos").value.trim(), stage: $("pStage").value, filmingApprovalConfirmed: $("pOk").checked, notes: "", createdAtEpochMs: Date.now() };
+    await DB.put("projects", p); S.current = p; $("dlgProj").close(); await UI.refreshProjects();
+  },
+};
+
+/* ===================== 시작 ===================== */
+(async function init() {
+  await DB.open(); await loadCal(); await UI.refreshProjects();
+  $("calTag").innerHTML = calTagHtml(S.cal);
+  document.querySelectorAll("nav button").forEach((b) => b.onclick = () => UI.tab(b.dataset.tab));
+  $("projSel").onchange = (e) => { S.current = S.projects.find((p) => p.id === e.target.value) || null; UI.projInfo(); };
+  $("btnNewProj").onclick = () => Proj.open(); $("pCancel").onclick = () => $("dlgProj").close(); $("pSave").onclick = () => Proj.save();
+  $("btnStart").onclick = () => Eng.running ? Measure.stop() : Measure.start();
+  $("btnReset").onclick = () => Eng.reset();
+  $("btnDelMk").onclick = () => Measure.delMarker();
+  $("btnSave").onclick = () => Measure.openSave(); $("sCancel").onclick = () => $("dlgSave").close(); $("sOk").onclick = () => Measure.save();
+  $("ov").addEventListener("click", (e) => Measure.tap(e));
+  $("btnExport").onclick = () => Info.exportAll();
+  $("btnImport").onclick = () => $("fileImport").click(); $("fileImport").onchange = (e) => e.target.files[0] && Info.importFile(e.target.files[0]);
+  window.addEventListener("resize", () => drawMarkers($("ov"), S.markers, S.selected));
+  drawSpectrum($("spec"), null, [], []);
+  window.AV = { Eng, S, DB, Cal, Info, designAWeighting, aWeightDb, makeAnalyzer, findPeaks, fanTones, thirdOctave }; // 시험용
+})();
+</script>
+</body>
+</html>
