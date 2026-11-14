@@ -1,0 +1,316 @@
+<title>급기 그릴 3D 모델</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: 도면 표제란처럼 좌측 3D 뷰포트 + 우측 사양 패널, 휴대폰에서는 위아래로 쌓음 */
+:root{
+  --bg:#eef2f5; --panel:#ffffff; --fg:#15212c; --muted:#5b6b78; --line:#d5dde4;
+  --accent:#1f6fd1; --accent-soft:#e3eefb; --warn:#a15c00; --warn-soft:#fff3e0;
+  --view:#dfe6ec;
+  --f-body:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f161d; --panel:#16202a; --fg:#e4ebf1; --muted:#93a3b1; --line:#2a3744;
+  --accent:#5aa2f2; --accent-soft:#1a2c40; --warn:#f0b35a; --warn-soft:#2e2414;
+  --view:#1b2630; color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --bg:#0f161d; --panel:#16202a; --fg:#e4ebf1; --muted:#93a3b1; --line:#2a3744;
+  --accent:#5aa2f2; --accent-soft:#1a2c40; --warn:#f0b35a; --warn-soft:#2e2414;
+  --view:#1b2630; color-scheme:dark;}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:14px;line-height:1.55}
+.wrap{max-width:1280px;margin:0 auto;padding-block:20px 40px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  display:flex;flex-direction:column;gap:16px}
+header{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px 16px}
+h1{font-size:22px;font-weight:700;margin:0;text-wrap:balance;letter-spacing:-.01em}
+.sub{color:var(--muted);margin:0;font-size:13px}
+.code{font-family:var(--f-mono);font-size:12px;color:var(--muted);letter-spacing:.04em}
+.main{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;align-items:start}
+@media (max-width:900px){.main{grid-template-columns:minmax(0,1fr)}}
+.viewer{position:relative;background:var(--view);border:1px solid var(--line);border-radius:6px;overflow:hidden;
+  height:min(72vh,640px);min-height:380px}
+.viewer canvas{display:block;width:100%;height:100%;touch-action:none}
+.hud{position:absolute;left:10px;bottom:10px;display:flex;flex-wrap:wrap;gap:6px;max-width:calc(100% - 20px)}
+.hud button{font:500 12px var(--f-body);color:var(--fg);background:var(--panel);border:1px solid var(--line);
+  border-radius:4px;padding:6px 10px;cursor:pointer}
+.hud button:hover{border-color:var(--accent)}
+.hud button:focus-visible,.panel input:focus-visible,.panel select:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.legend{position:absolute;right:10px;top:10px;background:var(--panel);border:1px solid var(--line);border-radius:4px;
+  padding:6px 10px;font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:2px}
+.legend b{color:var(--accent);font-weight:500}
+.loading{position:absolute;inset:0;display:grid;place-items:center;color:var(--muted);font-size:13px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:6px;display:flex;flex-direction:column}
+.sec{padding:14px 16px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:10px}
+.sec:first-child{border-top:0}
+.sec h2{margin:0;font-size:11px;font-weight:500;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+.row{display:grid;grid-template-columns:96px minmax(0,1fr) 62px;align-items:center;gap:8px}
+.row label{font-size:13px}
+.row output{font-family:var(--f-mono);font-size:12px;text-align:right;font-variant-numeric:tabular-nums}
+.row input[type=range]{width:100%;accent-color:var(--accent)}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.num{display:flex;flex-direction:column;gap:4px}
+.num span{font-size:12px;color:var(--muted)}
+.num input,.num select{font:13px var(--f-mono);color:var(--fg);background:var(--bg);border:1px solid var(--line);
+  border-radius:4px;padding:6px 8px;width:100%;box-sizing:border-box}
+.chk{display:flex;align-items:center;gap:8px;font-size:13px}
+.chk input{accent-color:var(--accent);width:16px;height:16px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+td{padding:4px 0;border-bottom:1px dashed var(--line)}
+td:last-child{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+tr:last-child td{border-bottom:0}
+.v-hi{color:var(--warn);font-weight:500}
+.note{background:var(--warn-soft);color:var(--fg);border-left:3px solid var(--warn);padding:10px 12px;font-size:12.5px;border-radius:0 4px 4px 0}
+.note b{color:var(--warn)}
+.foot{color:var(--muted);font-size:12px;max-width:72ch}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>급기 그릴 3D 모델 · 이중 가이드베인형</h1>
+      <p class="sub">전면 수평 날개(상하 풍향) + 후면 수직 날개(좌우 풍향), 선택 사양으로 대향익 댐퍼(OBD)</p>
+    </div>
+    <span class="code" id="tag">SG-DD 400×200</span>
+  </header>
+
+  <div class="main">
+    <div class="viewer" id="viewer">
+      <div class="loading" id="loading">3D 엔진을 불러오는 중…</div>
+      <div class="legend" aria-hidden="true">
+        <span><b>●</b> 급기 기류 (실내 방향)</span>
+        <span>드래그: 회전 · 휠/핀치: 확대</span>
+      </div>
+      <div class="hud">
+        <button type="button" id="vFront">정면</button>
+        <button type="button" id="vIso">투시</button>
+        <button type="button" id="vSide">측면</button>
+        <button type="button" id="vBack">후면</button>
+      </div>
+    </div>
+
+    <aside class="panel" aria-label="그릴 사양">
+      <div class="sec">
+        <h2>크기 (넥 기준, mm)</h2>
+        <div class="pair">
+          <label class="num"><span>폭 W</span><input id="W" type="number" min="150" max="1200" step="25" value="400"></label>
+          <label class="num"><span>높이 H</span><input id="H" type="number" min="100" max="800" step="25" value="200"></label>
+          <label class="num"><span>플랜지 폭</span><input id="F" type="number" min="15" max="60" step="1" value="30"></label>
+          <label class="num"><span>넥 깊이</span><input id="D" type="number" min="40" max="120" step="5" value="55"></label>
+        </div>
+      </div>
+
+      <div class="sec">
+        <h2>가이드 베인</h2>
+        <div class="row"><label for="a1">전면 각도</label><input id="a1" type="range" min="-45" max="45" step="1" value="15"><output id="a1o">15°</output></div>
+        <div class="row"><label for="a2">후면 각도</label><input id="a2" type="range" min="-45" max="45" step="1" value="0"><output id="a2o">0°</output></div>
+        <div class="row"><label for="p">날개 피치</label><input id="p" type="range" min="12" max="40" step="1" value="20"><output id="po">20 mm</output></div>
+        <div class="row"><label for="d">날개 깊이</label><input id="d" type="range" min="10" max="25" step="1" value="18"><output id="do">18 mm</output></div>
+      </div>
+
+      <div class="sec">
+        <h2>표시</h2>
+        <label class="chk"><input id="obd" type="checkbox"> 대향익 댐퍼(OBD) 부착</label>
+        <div class="row" id="obdRow"><label for="ob">댐퍼 개도</label><input id="ob" type="range" min="0" max="90" step="5" value="90"><output id="obo">90°</output></div>
+        <label class="chk"><input id="flow" type="checkbox" checked> 기류 애니메이션</label>
+        <label class="chk"><input id="cut" type="checkbox"> 단면 보기 (중심 절단)</label>
+        <label class="chk"><input id="wall" type="checkbox" checked> 천장/벽 마감면</label>
+        <label class="num"><span>마감 색상</span>
+          <select id="fin"><option value="white">백색 분체도장</option><option value="alu">알루미늄 무광</option><option value="dark">흑색 분체도장</option></select>
+        </label>
+      </div>
+
+      <div class="sec">
+        <h2>개략 검토 (추정)</h2>
+        <div class="num"><span>풍량 Q (CMH)</span><input id="Q" type="number" min="50" max="10000" step="10" value="400"></div>
+        <table>
+          <tr><td>전면 날개 수</td><td id="n1">–</td></tr>
+          <tr><td>후면 날개 수</td><td id="n2">–</td></tr>
+          <tr><td>넥 면적 A₀</td><td id="A0">–</td></tr>
+          <tr><td>기하 개구율 (추정)</td><td id="ratio">–</td></tr>
+          <tr><td>유효면적 Ak (추정)</td><td id="Ak">–</td></tr>
+          <tr><td>넥 풍속</td><td id="V0">–</td></tr>
+          <tr><td>유효면 풍속 (추정)</td><td id="Vk">–</td></tr>
+        </table>
+        <p class="note"><b>확인 필요</b> 개구율은 날개 두께·깊이·각도로 계산한 기하학적 추정값입니다. 실제 Ak, 도달거리, 소음(NC)은 제조사 시험성적서로 확인해야 합니다.</p>
+      </div>
+    </aside>
+  </div>
+
+  <p class="foot">치수는 일반적인 이중 가이드베인형 급기 그릴을 가정한 대표값입니다 (날개 두께 1.2 mm, 프레임 판두께 1.5 mm). 특정 제조사 제품이 아니며, 시공·제출용 도면으로 쓰려면 제품 사양서 치수로 바꿔 주세요.</p>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+(function(){
+const $ = id => document.getElementById(id);
+const viewer = $('viewer');
+if (!window.THREE || !THREE.OrbitControls){ $('loading').textContent='3D 엔진을 불러오지 못했습니다. 새로고침해 주세요.'; return; }
+$('loading').remove();
+
+const T = 1.2;      // 날개 두께 mm
+const SHEET = 1.5;  // 넥 판두께 mm
+const FACE_T = 6;   // 전면 프레임 두께 mm
+
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+renderer.localClippingEnabled = true;
+viewer.prepend(renderer.domElement);
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(35,1,1,20000);
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true; controls.target.set(0,0,-20);
+
+scene.add(new THREE.HemisphereLight(0xffffff,0x8a96a3,0.75));
+const key = new THREE.DirectionalLight(0xffffff,0.75); key.position.set(500,700,900); scene.add(key);
+const rim = new THREE.DirectionalLight(0xffffff,0.35); rim.position.set(-600,-300,-800); scene.add(rim);
+
+const clip = new THREE.Plane(new THREE.Vector3(-1,0,0),0);
+const FIN = {white:{c:0xf2f3f1,m:0.05,r:0.55}, alu:{c:0xc3c8cc,m:0.6,r:0.38}, dark:{c:0x2b2f33,m:0.1,r:0.5}};
+const mats = {
+  body:new THREE.MeshStandardMaterial({side:THREE.DoubleSide}),
+  vane:new THREE.MeshStandardMaterial({side:THREE.DoubleSide}),
+  galv:new THREE.MeshStandardMaterial({color:0x9aa3a8,metalness:0.55,roughness:0.45,side:THREE.DoubleSide}),
+  wall:new THREE.MeshStandardMaterial({color:0xb9bdb8,roughness:0.95,transparent:true,opacity:0.55,depthWrite:false,side:THREE.DoubleSide}),
+};
+function applyFinish(){
+  const f = FIN[$('fin').value]; [mats.body,mats.vane].forEach(m=>{m.color.setHex(f.c);m.metalness=f.m;m.roughness=f.r;});
+}
+function setClip(on){ Object.values(mats).forEach(m=>{m.clippingPlanes = on?[clip]:[]; m.needsUpdate=true;}); }
+
+let model = new THREE.Group(); scene.add(model);
+function box(w,h,d,mat,x,y,z){ const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat); m.position.set(x,y,z); return m; }
+function frameRing(g,ow,oh,iw,ih,depth,z,mat){
+  const sw=(ow-iw)/2, sh=(oh-ih)/2;
+  g.add(box(ow,sh,depth,mat,0,(ih+sh)/2,z)); g.add(box(ow,sh,depth,mat,0,-(ih+sh)/2,z));
+  g.add(box(sw,ih,depth,mat,(iw+sw)/2,0,z)); g.add(box(sw,ih,depth,mat,-(iw+sw)/2,0,z));
+}
+function vanePositions(len,pitch){ const n=Math.max(1,Math.round(len/pitch)-1); const s=len/(n+1); const a=[]; for(let i=0;i<n;i++) a.push(-len/2+s*(i+1)); return {n,s,a}; }
+
+let state = {};
+function read(){
+  const num=(id,lo,hi,def)=>{const v=parseFloat($(id).value); return isFinite(v)?Math.min(hi,Math.max(lo,v)):def;};
+  state = {W:num('W',150,1200,400),H:num('H',100,800,200),F:num('F',15,60,30),D:num('D',40,120,55),
+    a1:+$('a1').value,a2:+$('a2').value,p:+$('p').value,d:+$('d').value,
+    obd:$('obd').checked,ob:+$('ob').value,Q:num('Q',50,10000,400)};
+  const minD=2*state.d+12; // 전·후면 날개가 넥 안에 들어가도록 최소 깊이 보정
+  if(state.D<minD){ state.D=minD; $('D').value=minD; }
+}
+
+function build(){
+  scene.remove(model); model.traverse(o=>{if(o.geometry)o.geometry.dispose();});
+  model = new THREE.Group();
+  const {W,H,F,D,a1,a2,p,d,obd,ob} = state;
+  // 전면 프레임 (실내측 z=0 ~ +FACE_T)
+  frameRing(model,W+2*F,H+2*F,W,H,FACE_T,FACE_T/2,mats.body);
+  // 넥 (z=0 ~ -D)
+  frameRing(model,W+2*SHEET,H+2*SHEET,W,H,D,-D/2,mats.body);
+  // 전면 수평 날개: 상하 풍향
+  const zF = -d/2-2;
+  const fv = vanePositions(H,p);
+  fv.a.forEach(y=>{const m=box(W-1,T,d,mats.vane,0,y,zF); m.rotation.x=-a1*Math.PI/180; model.add(m);});
+  // 후면 수직 날개: 좌우 풍향
+  const zR = -d-8-d/2;
+  const rv = vanePositions(W,p);
+  rv.a.forEach(x=>{const m=box(T,H-1,d,mats.vane,x,0,zR); m.rotation.y=a2*Math.PI/180; model.add(m);});
+  // 날개 축봉 (후면 날개 상하 피벗 표시)
+  model.add(box(W,3,3,mats.body,0,H/2-2,zR)); model.add(box(W,3,3,mats.body,0,-H/2+2,zR));
+  model.add(box(3,H,3,mats.body,-W/2+2,0,zF)); model.add(box(3,H,3,mats.body,W/2-2,0,zF));
+  // OBD
+  const obdDepth=30, zO=-D-obdDepth/2;
+  if(obd){
+    frameRing(model,W+2*SHEET,H+2*SHEET,W,H,obdDepth,zO,mats.galv);
+    model.add(box(W+16,H+16,1.5,mats.galv,0,0,-D)); // 체결 플랜지
+    const ov=vanePositions(H,28), open=ob*Math.PI/180, bw=Math.min(ov.s*1.05,27);
+    ov.a.forEach((y,i)=>{const m=box(W-2,bw,1,mats.galv,0,y,zO); m.rotation.x=(i%2?1:-1)*open; model.add(m);}); // 인접 날개 반대 방향 회전
+  }
+  // 마감면 (천장/벽): z = 0 ~ -12, 개구부는 넥 + 10mm
+  if($('wall').checked){
+    const hw=W+10, hh=H+10, ext=Math.max(W,H)*0.3+F*2;
+    const ow=hw+2*ext, oh=hh+2*ext;
+    const wg=new THREE.Group(); frameRing(wg,ow,oh,hw,hh,12,-6,mats.wall); model.add(wg);
+  }
+  scene.add(model);
+  buildFlow();
+  report(fv.n,rv.n,fv.s,rv.s);
+  $('tag').textContent=`SG-DD ${W}×${H}`+(obd?' +OBD':'');
+}
+
+// 기류 입자
+let flow=null, flowData=null;
+function buildFlow(){
+  if(flow){scene.remove(flow); flow.geometry.dispose();}
+  const {W,H,D,a1,a2,d,obd}=state;
+  const N=Math.round(Math.min(900,Math.max(250,W*H/200)));
+  const pos=new Float32Array(N*3); const seed=new Float32Array(N*3);
+  for(let i=0;i<N;i++){ seed[i*3]=(Math.random()-.5)*(W-8); seed[i*3+1]=(Math.random()-.5)*(H-8); seed[i*3+2]=Math.random(); }
+  const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.BufferAttribute(pos,3));
+  const col=getComputedStyle(document.documentElement).getPropertyValue('--accent').trim()||'#1f6fd1';
+  flow=new THREE.Points(g,new THREE.PointsMaterial({color:new THREE.Color(col),size:Math.max(3,Math.min(W,H)/45),transparent:true,opacity:0.85,depthWrite:false}));
+  flow.visible=$('flow').checked;
+  const zStart=-D-(obd?30:0)-60, zRear=-d-8, zFront=0, zEnd=Math.max(W,H)*1.4;
+  flowData={N,seed,zStart,zRear,zFront,zEnd,t2:Math.tan(a2*Math.PI/180),t1:Math.tan(a1*Math.PI/180),W,H};
+  scene.add(flow);
+}
+function stepFlow(t){
+  if(!flow||!flow.visible) return;
+  const f=flowData, a=flow.geometry.attributes.position.array, L=f.zEnd-f.zStart;
+  for(let i=0;i<f.N;i++){
+    const z=f.zStart+((f.seed[i*3+2]+t*0.00018)%1)*L;
+    let x=f.seed[i*3], y=f.seed[i*3+1];
+    if(z>f.zRear) x+=f.t2*(z-f.zRear);            // 후면 날개: 좌우 편향
+    if(z>f.zFront){                                // 전면 날개: 상하 편향 + 토출 후 확산
+      const s=1+(z-f.zFront)/f.zEnd*0.6;
+      x*=s; y=f.seed[i*3+1]*s+f.t1*(z-f.zFront);
+    }
+    a[i*3]=x; a[i*3+1]=y; a[i*3+2]=z;
+  }
+  flow.geometry.attributes.position.needsUpdate=true;
+}
+
+function report(n1,n2,s1,s2){
+  const {W,H,a1,a2,d,Q}=state;
+  const blk=(ang)=>{const r=Math.abs(ang)*Math.PI/180; return d*Math.sin(r)+T*Math.cos(r);};
+  const open1=Math.max(0,(H-n1*blk(a1)))/H, open2=Math.max(0,(W-n2*blk(a2)))/W;
+  const ratio=open1*open2, A0=W*H/1e6, Ak=A0*ratio;
+  const V0=Q/3600/A0, Vk=Ak>0?Q/3600/Ak:Infinity;
+  $('n1').textContent=`${n1} 개 (간격 ${s1.toFixed(1)})`; $('n2').textContent=`${n2} 개 (간격 ${s2.toFixed(1)})`;
+  $('A0').textContent=`${A0.toFixed(4)} m²`; $('ratio').textContent=`${(ratio*100).toFixed(0)} %`;
+  $('Ak').textContent=`${Ak.toFixed(4)} m²`; $('V0').textContent=`${V0.toFixed(2)} m/s`;
+  const vk=$('Vk'); vk.textContent=isFinite(Vk)?`${Vk.toFixed(2)} m/s`:'–';
+  vk.className = Vk>3.0?'v-hi':''; vk.title = Vk>3.0?'교실·사무실 기준으로 높은 편입니다. 소음 검토가 필요합니다.':'';
+}
+
+function views(kind){
+  const {W,H}=state, R=Math.max(W,H)*2.4;
+  const p={front:[0,0,R],iso:[R*0.6,R*0.3,R*0.7],side:[R*0.9,R*0.08,-20],back:[-R*0.4,R*0.25,-R*0.85]}[kind];
+  camera.position.set(...p); controls.target.set(0,0,-20); controls.update();
+}
+['Front','Iso','Side','Back'].forEach(k=>$('v'+k).addEventListener('click',()=>views(k.toLowerCase())));
+
+function resize(){ const r=viewer.getBoundingClientRect(); renderer.setSize(r.width,r.height,false); camera.aspect=r.width/r.height; camera.updateProjectionMatrix(); }
+new ResizeObserver(resize).observe(viewer);
+
+function themeBg(){ const v=getComputedStyle(document.documentElement).getPropertyValue('--view').trim(); renderer.setClearColor(new THREE.Color(v||'#dfe6ec')); if(flow) flow.material.color.set(getComputedStyle(document.documentElement).getPropertyValue('--accent').trim()); }
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',themeBg);
+new MutationObserver(themeBg).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+
+const outs={a1:v=>v+'°',a2:v=>v+'°',p:v=>v+' mm',d:v=>v+' mm',ob:v=>v+'°'};
+function sync(){ for(const k in outs) $(k+'o').textContent=outs[k]($(k).value); $('obdRow').hidden=!$('obd').checked; }
+let pending=false;
+function update(){ if(pending) return; pending=true; requestAnimationFrame(()=>{pending=false; sync(); read(); build();}); }
+['W','H','F','D','a1','a2','p','d','ob','obd','wall','Q'].forEach(id=>$(id).addEventListener('input',update));
+$('flow').addEventListener('change',()=>{ if(flow) flow.visible=$('flow').checked; });
+$('cut').addEventListener('change',()=>setClip($('cut').checked));
+$('fin').addEventListener('change',applyFinish);
+
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+if(reduce) $('flow').checked=false;
+applyFinish(); themeBg(); sync(); read(); build(); resize(); views('iso');
+(function loop(t){ requestAnimationFrame(loop); controls.update(); stepFlow(reduce?0:t); renderer.render(scene,camera); })(0);
+})();
+</script>
